@@ -16,9 +16,9 @@ app.use(express.json());
 app.use("/get", response_route);
 app.use("/sug", suggestion_route);
 app.use('/db',save_route)
-
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 
