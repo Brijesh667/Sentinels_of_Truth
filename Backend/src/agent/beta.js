@@ -58,14 +58,14 @@ Summary: ${alpha_response.data.summary}
 
   const vector = await embedded(textToEmbed);
 
-  // STEP 3: search pinecone
+  
   const searchResult = await pineconeIndex.query({
     topK: 5,
     vector,
     includeMetadata: true,
   });
 
-  // STEP 4: if no match -> direct insert
+
   if (searchResult.matches.length === 0) {
     await insertIntoPinecone(vector, alpha_response);
 
@@ -75,7 +75,6 @@ Summary: ${alpha_response.data.summary}
     };
   }
 
-  // STEP 5: extract useful metadata
   const existingMatches = searchResult.matches.map((match) => ({
     score: match.score,
     claim: match.metadata.claim,
@@ -84,13 +83,13 @@ Summary: ${alpha_response.data.summary}
     confidence: match.metadata.confidence,
   }));
 
-  // STEP 6: ask LLM
+
   const decision = await getDecisionFromLLM(
     alpha_response,
     existingMatches
   );
 
-  // STEP 7: action
+ 
   if (decision.flag === "insert") {
     await insertIntoPinecone(vector, alpha_response);
     console.log('data saved')
@@ -110,7 +109,7 @@ Summary: ${alpha_response.data.summary}
 
 
 export default async function beta(obj) {
-  console.log('beta called')
+ 
     const result = await processAlphaResponse(obj);
     return result;
 }

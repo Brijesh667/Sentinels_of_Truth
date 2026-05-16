@@ -1,80 +1,109 @@
-// alpha_model.js
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText, generateObject, tool } from "ai";
 import { z } from "zod";
 import search from "../utils/web_search_tool.js";
 import date_time from "../utils/Date_time.js";
-import beta from "./beta.js";
 
 const agentSystemInstruction = `
-You are a Fact Verification Agent.
+You are a professional Fact Verification Agent.
 
-Decide whether the user query is:
-
-1. Casual / non-factual
-2. A verifiable factual claim
+Task:
+1. Detect if user input is casual conversation or a factual claim.
 
 Casual examples:
-hi, hello, how are you, joke, who are you
-
-For casual queries:
-- Do not use tools
-- Reply normally that you only verify factual claims
-
-For factual claims:
-- Use tools when needed
-- Use search for fact verification
-- Use date_time only when time context matters
-- Prefer reliable sources
+- hi
+- hello
+- how are you
+- tell me a joke
 
 Rules:
-- Never guess
-- Never hallucinate
-- Never fabricate
-- Only verify using evidence
+- For casual queries, do not use tools.
+- Reply that you only verify factual claims.
+- For factual claims, use tools when needed.
+- Use only retrieved evidence.
+
 `;
 
 const finalSystemInstruction = `
-Return ONLY valid JSON in this exact format:
+You are a fact verification engine.
+
+Return ONLY valid JSON:
 
 {
   "claim": "string",
-  "verification_status": "verified or fake",
+  "verification_status": "verified" or "fake",
   "summary": "string",
-  "sources": ["url1", "url2"], 
+  "sources": ["https://example.com"],
   "confidence": number
 }
-Note: sources should have original source link, correct link, 
+
 Rules:
+- JSON only
 - No markdown
 - No explanation
-- No extra text
-- claim = original user query
-- verification_status = only "verified" or "fake"
-- confidence = 0 to 100
-
-Note: ensure that claim, verification_status, summary, sources and confidence every field should have value, return complete full object 
+- claim must be original query
+- verification_status only "verified" or "fake"
+- confidence between 0 and 100
+- summary based only on retrieved evidence
+- sources must use URLs only
+Note: sources must contain original url link
 `;
 
 const verificationSchema = z.object({
   claim: z.string().min(1),
   verification_status: z.enum(["verified", "fake"]),
   summary: z.string().min(10),
-  sources: z.array(z.string().url()),
-  confidence: z.number().min(0).max(100)
+  sources: z.array(z.string()),
+  confidence: z.number().min(0).max(100),
 });
 
-/**
- * FUNCTION 1
- */
+function extractUrlsFromAnyShape(obj) {
+  const urls = [];
+
+  function walk(value) {
+    if (!value) return;
+
+    if (typeof value === "string") {
+      if (value.startsWith("http")) {
+        urls.push(value.trim());
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        walk(item);
+      }
+      return;
+    }
+
+    if (typeof value === "object") {
+      if (typeof value.url === "string" && value.url.startsWith("http")) {
+        urls.push(value.url.trim());
+      }
+
+      if (typeof value.link === "string" && value.link.startsWith("http")) {
+        urls.push(value.link.trim());
+      }
+
+      if (typeof value.href === "string" && value.href.startsWith("http")) {
+        urls.push(value.href.trim());
+      }
+
+      for (const key in value) {
+        walk(value[key]);
+      }
+    }
+  }
+
+  walk(obj);
+
+  return [...new Set(urls)];
+}
+
 async function alphaDecision({ apiKey, model, query }) {
   try {
-    console.log("first function called");
-    
-
-    const provider = createGoogleGenerativeAI({
-      apiKey
-    });
+    const provider = createGoogleGenerativeAI({ apiKey });
 
     const result = await generateText({
       model: provider(model),
@@ -85,12 +114,11 @@ async function alphaDecision({ apiKey, model, query }) {
         search: tool({
           description: "Search the web for fact verification.",
           inputSchema: z.object({
-            query: z.string()
+            query: z.string(),
           }),
           execute: async ({ query }) => {
-            // FIXED
             return await search(query);
-          }
+          },
         }),
 
         date_time: tool({
@@ -98,137 +126,86 @@ async function alphaDecision({ apiKey, model, query }) {
           inputSchema: z.object({}),
           execute: async () => {
             return await date_time();
-          }
-        })
+          },
+        }),
       },
 
-      maxSteps: 3
+      maxSteps: 3,
     });
 
-    // casual query
     if (!result.toolResults || result.toolResults.length === 0) {
       return {
         success: true,
         call_function: false,
         response:
           result.text ||
-          "I am a fact verification agent and only verify factual claims."
+          "I am a fact verification agent and only verify factual claims.",
       };
     }
 
-    // Extract clean URLs from tool output
-    const extractedUrls = [];
+    const extractedUrls = extractUrlsFromAnyShape(result.toolResults);
 
-    for (const toolResult of result.toolResults) {
-      const output = toolResult.output;
+    
 
-      if (!output || output.success === false) continue;
-
-      // common patterns
-      if (Array.isArray(output.sources)) {
-        for (const source of output.sources) {
-          if (typeof source === "string" && source.startsWith("http")) {
-            extractedUrls.push(source);
-          }
-
-          if (
-            typeof source === "object" &&
-            source.url &&
-            typeof source.url === "string"
-          ) {
-            extractedUrls.push(source.url);
-          }
-
-          if (
-            typeof source === "object" &&
-            source.link &&
-            typeof source.link === "string"
-          ) {
-            extractedUrls.push(source.link);
-          }
-        }
-      }
-
-      if (Array.isArray(output.results)) {
-        for (const item of output.results) {
-          if (item.url && typeof item.url === "string") {
-            extractedUrls.push(item.url);
-          }
-
-          if (item.link && typeof item.link === "string") {
-            extractedUrls.push(item.link);
-          }
-        }
-      }
-    }
-
-    // factual query
     return {
       success: true,
       call_function: true,
       original_query: query,
       response: {
+        extractedUrls,
         toolResults: result.toolResults,
-        extractedUrls: [...new Set(extractedUrls)]
-      }
+      },
     };
-
   } catch (error) {
     return {
       success: false,
-      error: error.message || "Alpha decision failed"
+      error: error.message || "Alpha decision failed",
     };
   }
 }
 
-/**
- * FUNCTION 2
- */
-async function finalVerifier({ apiKey, model, original_query, response }) {
+async function finalVerifier({
+  apiKey,
+  model,
+  original_query,
+  response,
+}) {
   try {
-    console.log("second function called");
-
-    const provider = createGoogleGenerativeAI({
-      apiKey
-    });
+    const provider = createGoogleGenerativeAI({ apiKey });
 
     const result = await generateObject({
       model: provider(model),
       schema: verificationSchema,
+
       system: `
 ${finalSystemInstruction}
 
-IMPORTANT:
-Use ONLY URLs from extractedUrls field for sources.
-Never invent URLs.
-If extractedUrls exists, sources must come only from that list.
+STRICT RULE:
+Use ONLY these URLs in sources:
+${JSON.stringify(response.extractedUrls)}
 `,
 
       prompt: `
 Original Query:
 ${original_query}
 
-Fetched Evidence:
-${JSON.stringify(response, null, 2)}
-`
+Evidence:
+${JSON.stringify(response.toolResults, null, 2)}
+`,
     });
 
     return {
       success: true,
-      data: result.object
+      data: result.object,
     };
-
   } catch (error) {
     return {
       success: false,
-      error: error.message || "Final verification failed"
+      error: error.message || "Final verification failed",
     };
   }
 }
 
-/**
- * MAIN FUNCTION
- */
 export default async function alpha(obj) {
   try {
     const { apiKey, model, query } = obj;
@@ -236,50 +213,34 @@ export default async function alpha(obj) {
     if (!apiKey || !model || !query) {
       return {
         success: false,
-        error: "apiKey, model and query are required"
+        error: "apiKey, model and query are required",
       };
     }
 
-    const alpha = await alphaDecision({
+    const alphaResult = await alphaDecision({
       apiKey,
       model,
-      query
+      query,
     });
 
-    if (!alpha.success) {
-      return alpha;
+    if (!alphaResult.success) {
+      return alphaResult;
     }
 
-    if (!alpha.call_function) {
-      return alpha;
+    if (!alphaResult.call_function) {
+      return alphaResult;
     }
 
     return await finalVerifier({
       apiKey,
       model,
-      original_query: alpha.original_query,
-      response: alpha.response
+      original_query: alphaResult.original_query,
+      response: alphaResult.response,
     });
-
   } catch (error) {
     return {
       success: false,
-      error: error.message || "Unexpected error"
+      error: error.message || "Unexpected error",
     };
   }
-}
-
-// async function alpha(obj) {
-//   const ans = await StartChat(obj);
-//   console.log(ans);
-//   const res = await beta(ans);
-
- 
-// }
-// const alpha = async(req,res)=>{
-//   const ans = req.body;
-  
-// }
-// export default alpha;
-
-
+} 

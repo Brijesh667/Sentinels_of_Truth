@@ -4,27 +4,35 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const tvly = tavily({
-  apiKey: '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'
-  // apiKey: process.env.TAVILY_API_KEY
+  apiKey: process.env.TAVILY_API_KEY,
 });
 
-export default async function search(query) {
+export default async function search(query, maxResults = 3) {
+  if (!query?.trim()) {
+    return {
+      success: false,
+      error: "Query is required",
+    };
+  }
+
   try {
-    const response = await tvly.search(query);
+    const { results = [] } = await tvly.search(query, {
+      max_results: maxResults,
+      search_depth: "basic",
+    });
 
     return {
       success: true,
-      sources: response.results.map((item) => ({
-        title: item.title,
-        content: item.content,
-        url: item.url
-      }))
+      sources: results.map(({ title, content, url }) => ({
+        title,
+        content,
+        url,
+      })),
     };
-
   } catch (error) {
     return {
       success: false,
-      error: error.message
+      error: error.message || "Search failed",
     };
   }
 }
