@@ -10,7 +10,7 @@ const ai = new GoogleGenAI({
 
 async function getDecisionFromLLM(alpha_response, existingMatches) {
   const decision = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
 
     contents: `
 You are a fact verification decision engine.
@@ -92,18 +92,13 @@ Summary: ${alpha_response.data.summary}
  
   if (decision.flag === "insert") {
     await insertIntoPinecone(vector, alpha_response);
-    console.log('data saved')
+    console.log('data saved');
   }
 
-  if (decision.flag === "reject") {
-    return decision;
-  }
-
-  if (decision.flag === "human_review") {
-    return decision;
-  }
-
-  return decision;
+  return {
+    ...decision,
+    existingMatches,
+  };
 }
 
 

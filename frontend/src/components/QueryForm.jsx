@@ -1,16 +1,41 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import axiosClient from "../utils/axiosClient";
+import { streamVerify } from "../utils/streamVerify";
 import SuggestionDropdown from "./SuggestionDropdown";
 import ResponseCard from "./ResponseCard";
-import DbStatusCard from "./DbStatusCard";
+import HistoryPanel from "./HistoryPanel";
 
 function QueryForm() {
+  const { getToken, isSignedIn } = useAuth();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [result, setResult] = useState(null);
-  const [dbResult, setDbResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState("");
+  const [isStopped, setIsStopped] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [historyTrigger, setHistoryTrigger] = useState(0);
+
+  const abortControllerRef = useRef(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
+
+  // Abort in-flight request on component unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -21,57 +46,104 @@ function QueryForm() {
   };
 
   const handleSuggestionClick = (suggestion) => {
-    // suggestion 
     setResult({
       data: suggestion.data,
     });
     setQuery(suggestion.text);
     setShowSuggestions(false);
     setSuggestions([]);
+    setIsStopped(false);
+  };
+
+  const handleSelectHistory = (historyItem) => {
+    if (historyItem.result) {
+      setResult({
+        data: historyItem.result,
+        cached: historyItem.cached,
+        took_ms: historyItem.tookMs,
+      });
+      setQuery(historyItem.claim || "");
+      setIsStopped(false);
+    }
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+    setStage("");
+    setIsStopped(true);
   };
 
   const handleSubmit = async () => {
-    if (!query.trim()) {
+    if (!query.trim() || cooldown > 0 || loading) {
       return;
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
+    setIsStopped(false);
+    setStage("");
     setResult(null);
-    setDbResult(null);
     setShowSuggestions(false);
     setSuggestions([]);
 
-    try {
-      //alpha response
-      const response = await axiosClient.post("/get/validate", {
-        query: query,
-      });
-
-      console.log("Verification response:", response.data);
-
-      // Show verification result
-      setResult(response?.data);
-      setLoading(false);
-
-      // DB call
-      if (response?.data?.data) {
-        try {
-          const saveResponse = await axiosClient.post("/db/save", response.data);
-          console.log("DB save response:", saveResponse.data);
-          setDbResult(saveResponse.data);
-        } catch (error) {
-          console.error("DB save failed:", error.message);
-        }
-      } else {
-        console.log("No data to save to DB");
+    let token = null;
+    if (isSignedIn) {
+      try {
+        token = await getToken();
+      } catch (err) {
+        console.warn("Could not retrieve Clerk token:", err);
       }
-    } catch (error) {
-      console.error("Verification error:", error.message);
-      setResult({
-        response: "Something went wrong. Please try again.",
-      });
-      setLoading(false);
     }
+
+    await streamVerify({
+      query,
+      token,
+      signal: controller.signal,
+      onProgress: (newStage) => {
+        setStage(newStage);
+      },
+      onResult: async (alphaResponse) => {
+        setLoading(false);
+        setStage("");
+        if (alphaResponse?.success === false) {
+          setResult({
+            error: alphaResponse.error || "Verification failed",
+          });
+          return;
+        }
+        setResult(alphaResponse);
+
+        // Refresh user history list
+        if (isSignedIn) {
+          setHistoryTrigger((prev) => prev + 1);
+        }
+      },
+      onError: (errorData) => {
+        setLoading(false);
+        setStage("");
+        const errorMessage =
+          errorData?.error || "Something went wrong. Please try again.";
+
+        setResult({
+          response: errorMessage,
+          code: errorData?.code,
+        });
+
+        if (errorData?.code === "GAP") {
+          const retryAfter = Number(errorData?.retryAfter) || 30;
+          setCooldown(retryAfter);
+        }
+      },
+    });
   };
 
   useEffect(() => {
@@ -94,7 +166,6 @@ function QueryForm() {
         });
 
         if (response.data) {
-
           let suggestionsArray = [];
 
           if (Array.isArray(response.data)) {
@@ -103,7 +174,6 @@ function QueryForm() {
             response.data.suggestions &&
             Array.isArray(response.data.suggestions)
           ) {
-
             suggestionsArray = response.data.suggestions.map((item) => ({
               score: item.score,
               text: item.data.claim || item.data.text || JSON.stringify(item.data),
@@ -136,7 +206,6 @@ function QueryForm() {
     };
 
     const handleClickOutside = (e) => {
-      // Hide suggestions 
       if (e.target.closest(".suggestion-container") === null) {
         setShowSuggestions(false);
       }
@@ -173,18 +242,37 @@ function QueryForm() {
           />
         )}
       </div>
-      <div className="flex justify-end mt-3">
+
+      <div className="flex justify-end mt-3 gap-3">
+        {loading && (
+          <button
+            type="button"
+            onClick={handleStop}
+            className="px-6 py-3 h-fit bg-red-600 text-white rounded-xl hover:bg-red-700 transition duration-200 font-medium whitespace-nowrap cursor-pointer"
+          >
+            Stop
+          </button>
+        )}
         <button
           onClick={handleSubmit}
-          disabled={loading}
-          className="relative z-20 px-8 py-3 h-fit bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition duration-200 font-medium disabled:bg-gray-400 whitespace-nowrap"
+          disabled={loading || cooldown > 0}
+          className="relative z-20 px-8 py-3 h-fit bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition duration-200 font-medium disabled:bg-gray-400 whitespace-nowrap cursor-pointer"
         >
-          {loading ? "Checking..." : "Verify Fact"}
+          {loading ? "Checking..." : cooldown > 0 ? `Wait (${cooldown}s)` : "Verify Fact"}
         </button>
       </div>
 
-      <ResponseCard result={result} loading={loading} />
-      <DbStatusCard dbResult={dbResult} />
+      <ResponseCard
+        result={result}
+        loading={loading}
+        stage={stage}
+        isStopped={isStopped}
+      />
+
+      <HistoryPanel
+        onSelectHistory={handleSelectHistory}
+        refreshTrigger={historyTrigger}
+      />
     </div>
   );
 }

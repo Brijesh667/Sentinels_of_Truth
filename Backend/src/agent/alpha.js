@@ -101,7 +101,13 @@ function extractUrlsFromAnyShape(obj) {
   return [...new Set(urls)];
 }
 
-async function alphaDecision({ apiKey, model, query }) {
+async function alphaDecision({ apiKey, model, query, signal, onProgress }) {
+  if (signal?.aborted) {
+    const err = new Error("Aborted");
+    err.name = "AbortError";
+    throw err;
+  }
+
   try {
     const provider = createGoogleGenerativeAI({ apiKey });
 
@@ -109,6 +115,7 @@ async function alphaDecision({ apiKey, model, query }) {
       model: provider(model),
       system: agentSystemInstruction,
       prompt: query,
+      abortSignal: signal,
 
       tools: {
         search: tool({
@@ -116,8 +123,23 @@ async function alphaDecision({ apiKey, model, query }) {
           inputSchema: z.object({
             query: z.string(),
           }),
-          execute: async ({ query }) => {
-            return await search(query);
+          execute: async ({ query }, { abortSignal: toolSignal } = {}) => {
+            const effectiveSignal = signal || toolSignal;
+            if (effectiveSignal?.aborted) {
+              const err = new Error("Aborted");
+              err.name = "AbortError";
+              throw err;
+            }
+
+            if (onProgress) {
+              onProgress("searching");
+            }
+
+            console.log(`[${new Date().toISOString()}] search start`);
+            const searchResult = await search(query, 3, effectiveSignal);
+            console.log(`[${new Date().toISOString()}] search done`);
+
+            return searchResult;
           },
         }),
 
@@ -125,6 +147,11 @@ async function alphaDecision({ apiKey, model, query }) {
           description: "Returns current local date and time.",
           inputSchema: z.object({}),
           execute: async () => {
+            if (signal?.aborted) {
+              const err = new Error("Aborted");
+              err.name = "AbortError";
+              throw err;
+            }
             return await date_time();
           },
         }),
@@ -132,6 +159,12 @@ async function alphaDecision({ apiKey, model, query }) {
 
       maxSteps: 3,
     });
+
+    if (signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
 
     if (!result.toolResults || result.toolResults.length === 0) {
       return {
@@ -145,8 +178,6 @@ async function alphaDecision({ apiKey, model, query }) {
 
     const extractedUrls = extractUrlsFromAnyShape(result.toolResults);
 
-    
-
     return {
       success: true,
       call_function: true,
@@ -157,6 +188,11 @@ async function alphaDecision({ apiKey, model, query }) {
       },
     };
   } catch (error) {
+    if (signal?.aborted || error.name === "AbortError") {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
     return {
       success: false,
       error: error.message || "Alpha decision failed",
@@ -169,13 +205,28 @@ async function finalVerifier({
   model,
   original_query,
   response,
+  signal,
+  onProgress,
 }) {
+  if (signal?.aborted) {
+    const err = new Error("Aborted");
+    err.name = "AbortError";
+    throw err;
+  }
+
+  if (onProgress) {
+    onProgress("analyzing");
+  }
+
+  console.log(`[${new Date().toISOString()}] analysis start`);
+
   try {
     const provider = createGoogleGenerativeAI({ apiKey });
 
     const result = await generateObject({
       model: provider(model),
       schema: verificationSchema,
+      abortSignal: signal,
 
       system: `
 ${finalSystemInstruction}
@@ -194,11 +245,24 @@ ${JSON.stringify(response.toolResults, null, 2)}
 `,
     });
 
+    console.log(`[${new Date().toISOString()}] analysis done`);
+
+    if (signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
+
     return {
       success: true,
       data: result.object,
     };
   } catch (error) {
+    if (signal?.aborted || error.name === "AbortError") {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
     return {
       success: false,
       error: error.message || "Final verification failed",
@@ -208,7 +272,7 @@ ${JSON.stringify(response.toolResults, null, 2)}
 
 export default async function alpha(obj) {
   try {
-    const { apiKey, model, query } = obj;
+    const { apiKey, model, query, signal, onProgress } = obj;
 
     if (!apiKey || !model || !query) {
       return {
@@ -217,11 +281,25 @@ export default async function alpha(obj) {
       };
     }
 
+    if (signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
+
     const alphaResult = await alphaDecision({
       apiKey,
       model,
       query,
+      signal,
+      onProgress,
     });
+
+    if (signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
 
     if (!alphaResult.success) {
       return alphaResult;
@@ -236,11 +314,18 @@ export default async function alpha(obj) {
       model,
       original_query: alphaResult.original_query,
       response: alphaResult.response,
+      signal,
+      onProgress,
     });
   } catch (error) {
+    if (obj?.signal?.aborted || error.name === "AbortError") {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
     return {
       success: false,
       error: error.message || "Unexpected error",
     };
   }
-} 
+}

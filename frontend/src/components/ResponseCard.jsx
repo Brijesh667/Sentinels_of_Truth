@@ -1,11 +1,31 @@
-function ResponseCard({ result, loading }) {
+import { SignInButton } from "@clerk/clerk-react";
+
+function ResponseCard({ result, loading, stage, isStopped }) {
   if (loading) {
+    const stageText =
+      stage === "checking_cache"
+        ? "Checking verified database..."
+        : stage === "searching"
+        ? "Searching the web..."
+        : stage === "analyzing"
+        ? "Analyzing evidence..."
+        : "Checking fact...";
+
     return (
       <div className="mt-8 bg-white p-8 rounded-2xl shadow-lg">
         <div className="flex items-center justify-center gap-3">
           <div className="w-5 h-5 bg-blue-500 rounded-full animate-pulse"></div>
-          <p className="text-center text-gray-600 font-medium">Checking fact...</p>
+          <p className="text-center text-gray-600 font-medium">{stageText}</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isStopped) {
+    return (
+      <div className="mt-8 bg-white p-8 rounded-2xl shadow-lg border-l-4 border-gray-400">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Stopped</h2>
+        <p className="text-gray-600">Verification stopped by user.</p>
       </div>
     );
   }
@@ -14,11 +34,31 @@ function ResponseCard({ result, loading }) {
     return null;
   }
 
-  if (result.response) {
+  const displayText = result.response || result.error;
+
+  if (displayText && !result.data) {
+    const isError = Boolean(result.error) || (result.code && result.code !== "LOGIN_REQUIRED");
+    const borderClass = isError ? "border-red-500" : "border-yellow-500";
+    const titleText = result.error ? "Error" : "Response";
+
     return (
-      <div className="mt-8 bg-white p-8 rounded-2xl shadow-lg border-l-4 border-yellow-500">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Response</h2>
-        <p className="text-gray-700 leading-relaxed">{result.response}</p>
+      <div className={`mt-8 bg-white p-8 rounded-2xl shadow-lg border-l-4 ${borderClass}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">{titleText}</h2>
+          {result.took_ms !== undefined && (
+            <span className="text-xs text-gray-500 font-medium">
+              {result.took_ms}ms
+            </span>
+          )}
+        </div>
+        <p className="text-gray-700 leading-relaxed mb-4">{displayText}</p>
+        {result.code === "LOGIN_REQUIRED" && (
+          <SignInButton mode="modal">
+            <button className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition duration-200 font-medium text-sm cursor-pointer">
+              Login to Continue
+            </button>
+          </SignInButton>
+        )}
       </div>
     );
   }
@@ -26,7 +66,8 @@ function ResponseCard({ result, loading }) {
   if (result.data) {
     const isReal =
       result.data.verification_status?.toLowerCase() === "true" ||
-      result.data.verification_status?.toLowerCase() === "real";
+      result.data.verification_status?.toLowerCase() === "real" ||
+      result.data.verification_status?.toLowerCase() === "verified";
 
     const statusColor = isReal
       ? "bg-green-100 text-green-800 border-green-300"
@@ -43,8 +84,19 @@ function ResponseCard({ result, loading }) {
 
     return (
       <div className={`mt-8 bg-white p-8 rounded-2xl shadow-lg border-l-4 ${statusBgColor}`}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">Verification Result</h2>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-3xl font-bold text-gray-900">Verification Result</h2>
+            {result.cached ? (
+              <span className="px-3 py-1 bg-purple-100 text-purple-800 border border-purple-300 rounded-full text-xs font-semibold">
+                Served from verified database • {result.took_ms ? `${result.took_ms}ms` : "cached"}
+              </span>
+            ) : result.took_ms !== undefined ? (
+              <span className="px-2.5 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-full text-xs font-medium">
+                {result.took_ms}ms
+              </span>
+            ) : null}
+          </div>
           <span className={`px-4 py-2 rounded-full font-semibold text-sm border ${statusColor}`}>
             {result.data.verification_status}
           </span>

@@ -7,7 +7,7 @@ const tvly = tavily({
   apiKey: process.env.TAVILY_API_KEY,
 });
 
-export default async function search(query, maxResults = 3) {
+export default async function search(query, maxResults = 3, signal) {
   if (!query?.trim()) {
     return {
       success: false,
@@ -15,11 +15,24 @@ export default async function search(query, maxResults = 3) {
     };
   }
 
+  if (signal?.aborted) {
+    const err = new Error("Aborted");
+    err.name = "AbortError";
+    throw err;
+  }
+
   try {
     const { results = [] } = await tvly.search(query, {
       max_results: maxResults,
       search_depth: "basic",
+      signal,
     });
+
+    if (signal?.aborted) {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
 
     return {
       success: true,
@@ -30,6 +43,11 @@ export default async function search(query, maxResults = 3) {
       })),
     };
   } catch (error) {
+    if (signal?.aborted || error.name === "AbortError") {
+      const err = new Error("Aborted");
+      err.name = "AbortError";
+      throw err;
+    }
     return {
       success: false,
       error: error.message || "Search failed",
