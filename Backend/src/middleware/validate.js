@@ -15,4 +15,6 @@ export const querySchema = z.object({
     .trim()
     .min(3, "Query must be at least 3 characters")
     .max(300, "Query cannot exceed 300 characters"),
+  skipCache: z.boolean().optional(),
+  forceFresh: z.boolean().optional(),
 });

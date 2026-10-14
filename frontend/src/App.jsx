@@ -6,6 +6,7 @@ import Home_page from "./pages/Home_page";
 import NotFoundPage from "./pages/NotFound_page";
 
 const About = React.lazy(() => import("./pages/About_page"));
+const Privacy = React.lazy(() => import("./pages/Privacy_page"));
 
 const DevResultPreview = import.meta.env.DEV
   ? React.lazy(() => import("./dev/ResultPreview"))
@@ -28,6 +29,20 @@ function App() {
               }
             >
               <About />
+            </React.Suspense>
+          }
+        />
+        <Route
+          path="/privacy"
+          element={
+            <React.Suspense
+              fallback={
+                <div className="py-20 text-center text-fg-muted text-sm">
+                  Loading...
+                </div>
+              }
+            >
+              <Privacy />
             </React.Suspense>
           }
         />

@@ -12,7 +12,7 @@ export default function Logo({ className = "", showName = true }) {
         className="w-8 h-8 md:w-9 md:h-9 rounded-xl object-contain shadow-xs flex-shrink-0"
       />
       {showName && (
-        <span className="font-display font-bold text-fg text-base md:text-lg tracking-tight">
+        <span className="font-serif font-bold text-fg text-base md:text-lg tracking-tight">
           {siteConfig.name}
         </span>
       )}

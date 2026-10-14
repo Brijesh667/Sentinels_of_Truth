@@ -7,7 +7,7 @@ import { ThemeProvider, useTheme } from "./theme/ThemeProvider.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 import { AuthBridge } from "./utils/authToken.js";
 import "@fontsource-variable/inter";
-import "@fontsource-variable/sora";
+import "@fontsource-variable/newsreader";
 import "./index.css";
 import App from "./App.jsx";
 
@@ -40,9 +40,9 @@ function ClerkWithTheme({ children }) {
       appearance={{
         baseTheme: isDark ? dark : undefined,
         variables: {
-          colorPrimary: isDark ? "#4f8bff" : "#2563eb",
-          colorBackground: isDark ? "#121826" : "#ffffff",
-          colorText: isDark ? "#e8ecf4" : "#111827",
+          colorPrimary: isDark ? "#6b9dff" : "#1d4ed8",
+          colorBackground: isDark ? "#14171e" : "#ffffff",
+          colorText: isDark ? "#eceef3" : "#16181d",
         },
       }}
     >

@@ -1,237 +1,232 @@
-import { lazy, Suspense } from "react";
-import { Link } from "react-router-dom";
-import { useTheme } from "../theme/ThemeProvider";
-import MaskedHeading from "../components/reactbits/MaskedHeading";
-import SpotlightCard from "../components/reactbits/SpotlightCard";
+import usePageTitle from "../utils/usePageTitle";
+import QueryForm from "../components/QueryForm";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
-import Reveal from "../components/ui/Reveal";
-import usePageTitle from "../utils/usePageTitle";
+import VerdictBadge from "../components/ui/VerdictBadge";
+import ConfidenceMeter from "../components/ui/ConfidenceMeter";
 
-// Lazy-load heavier below-the-fold component so the hero paints immediately
-const VerdictShowcase = lazy(() =>
-  import("../components/landing/VerdictShowcase")
-);
+const COMMON_FORWARDS = [
+  "Is Earth flat?",
+  "Do vaccines cause autism?",
+  "Is the Great Wall of China visible from space?",
+  "Do we use only 10% of our brain?",
+  "Does lightning never strike the same place twice?",
+  "Do goldfish have a 3-second memory?",
+  "Is the Taj Mahal in Agra?",
+  "Does drinking hot water prevent viruses?",
+];
 
-
-
-const STEPS = [
+const HOW_IT_WORKS_STEPS = [
   {
-    num: "01",
-    title: "You ask",
-    desc: "Paste any claim, breaking news statement, or forwarded rumor in plain language.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.502 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.002z"
-      />
-    ),
+    step: "1",
+    title: "Paste it",
+    desc: "Paste any statement, breaking headline, or forwarded rumor in plain language.",
   },
   {
-    num: "02",
-    title: "Check verified knowledge",
-    desc: "If someone verified the same claim before, you get that answer instantly from the database.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"
-      />
-    ),
+    step: "2",
+    title: "We gather the evidence",
+    desc: "We cross-reference verified archives and search reputable public sources in real time.",
   },
   {
-    num: "03",
-    title: "Search & weigh evidence",
-    desc: "Live web search gathers sources, then AI evaluates evidence and calculates confidence.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 3v17.25m0 0l-4.5-4.5M12 20.25l4.5-4.5M4.5 7.5L12 3l7.5 4.5"
-      />
-    ),
-  },
-  {
-    num: "04",
-    title: "Remember & save history",
-    desc: "Verified claims are stored to answer future queries instantly, and saved to your personal history.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
-      />
-    ),
+    step: "3",
+    title: "Read the receipts",
+    desc: "You get the verdict, confidence percentage, explanation, and primary links.",
   },
 ];
 
-const FEATURES = [
+const FAQS = [
   {
-    title: "Instant answers for repeat claims",
-    desc: "Repeated checks bypass web search and serve within milliseconds from our verified database.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
-      />
-    ),
+    q: "Is it always accurate?",
+    a: "No system is 100% infallible. We display the confidence score and direct source links so you can judge the primary reporting for yourself.",
   },
   {
-    title: "Sources you can open",
-    desc: "Every verdict links directly to live, primary sources with complete transparency.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
-      />
-    ),
+    q: "Is it free to use?",
+    a: "Yes. You can verify claims immediately without signing up. Signing in lets you access your check history across devices.",
   },
   {
-    title: "Live progress and a Stop button",
-    desc: "Watch verification stages live and abort requests anytime without waiting.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z"
-      />
-    ),
+    q: "Do you store my personal information?",
+    a: "No personal names or account info are attached to checks. If you create an account via Clerk, only your private history log is saved for your own viewing.",
   },
   {
-    title: "Contradiction and duplicate checks",
-    desc: "Incoming claims are checked against existing knowledge to catch contradictions and duplicates.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 3v17.25m0 0l-4.5-4.5M12 20.25l4.5-4.5M4.5 7.5L12 3l7.5 4.5"
-      />
-    ),
+    q: "What languages are supported?",
+    a: "It works best with English claims. Other languages can be checked against available translated web sources.",
   },
   {
-    title: "Human review for uncertain cases",
-    desc: "Ambiguous or contested claims are flagged for secondary inspection rather than guessing.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-      />
-    ),
+    q: "Can I send the answer back on WhatsApp?",
+    a: "Yes, every verdict includes a one-click share link formatted specifically for messaging apps.",
   },
-  {
-    title: "Your history, saved",
-    desc: "Signed-in members automatically retain private check logs across devices and sessions.",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    ),
-  },
-];
-
-const TECH_BADGES = [
-  "React",
-  "Node/Express",
-  "Gemini",
-  "Pinecone",
-  "Tavily",
-  "MongoDB",
-  "Clerk",
 ];
 
 export default function LandingPage() {
-  usePageTitle("Sentinels of Truth — Check a claim");
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  usePageTitle("Sentinels of Truth — Check before you share");
+
+  const handleCardClick = (text) => {
+    window.dispatchEvent(new CustomEvent("sot:set-claim", { detail: text }));
+  };
 
   return (
     <div className="w-full bg-bg text-fg transition-colors">
-      {/* 1. HERO SECTION */}
+      {/* 1. HERO SECTION: Full-featured Verifier as the Hero */}
       <section
         aria-label="Hero"
-        className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 px-4 sm:px-6 lg:px-8 border-b border-line"
+        className="pt-10 sm:pt-14 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 border-b border-line"
       >
-        {/* Subtle radial background decoration */}
-        <div
-          className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-primary/6 rounded-full blur-3xl -z-10"
-          aria-hidden="true"
-        />
-
-        <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
-          {/* MaskedHeading Headline */}
-          <div className="w-full mb-6">
-            <MaskedHeading
-              tag="h1"
-              text={`Sift signal from noise.\nVerify truth with evidence\nin seconds.`}
-              src="/hero-mesh.svg"
-              align="center"
-              weight={800}
-              textScale={0.052}
-              lineHeight={1.12}
-              brightness={isDark ? 1.15 : 0.85}
-              saturation={isDark ? 1.25 : 1.45}
-              parallax={18}
-              drift={14}
-              reveal="rise"
-              duration={1.0}
-              className="font-display tracking-tight text-fg"
-              aria-label="Sift signal from noise. Verify truth with evidence in seconds."
-            />
-          </div>
-
-          {/* Subtext */}
-          <p className="text-base sm:text-lg md:text-xl text-fg-muted max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed font-normal">
-            Got a forward that sounds off? Paste it here. We check it against live
-            sources, show the evidence, and tell you how sure we are.
-          </p>
-
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-md mx-auto mb-10">
-            {/* Primary CTA: SpecularButton via Button variant="primary" */}
-            <Button
-              variant="primary"
-              size="lg"
-              to="/app"
-              className="w-full sm:w-auto min-h-[48px] px-8 text-base font-semibold"
-            >
-              Verify a claim
-            </Button>
-
-            {/* Secondary CTA */}
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center justify-center w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-2xl border border-line bg-surface text-fg hover:bg-surface-2 font-medium text-sm sm:text-base transition-colors shadow-xs"
-            >
-              See how it works
-            </a>
-          </div>
-
-        </div>
+        <QueryForm isLanding={true} />
       </section>
 
-      {/* 2. SEE WHAT A VERDICT LOOKS LIKE */}
+      {/* 2. "WHAT YOU GET" EDITORIAL PROOF SECTION */}
       <section
-        aria-labelledby="verdict-showcase-heading"
-        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-b border-line"
+        aria-labelledby="what-you-get-heading"
+        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-b border-line"
       >
-        <Reveal>
-          <Suspense
-            fallback={
-              <div className="w-full h-80 rounded-2xl bg-surface-2/60 animate-pulse border border-line flex items-center justify-center text-xs text-fg-muted">
-                Loading verdict showcase...
-              </div>
-            }
+        <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+          <h2
+            id="what-you-get-heading"
+            className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-fg tracking-tight"
           >
-            <VerdictShowcase />
-          </Suspense>
-        </Reveal>
+            Not just &ldquo;true&rdquo; or &ldquo;false&rdquo;. The proof, too.
+          </h2>
+          <p className="text-sm sm:text-base text-fg-muted mt-2">
+            Every check gives you a complete, transparent breakdown.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Mock Editorial Verdict Card */}
+          <div className="lg:col-span-7">
+            <Card className="p-6 sm:p-7 border border-line bg-surface rounded-2xl shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-line flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <Badge variant="neutral" size="sm">
+                    Fresh check
+                  </Badge>
+                  <span className="text-xs text-fg-muted">1.3s</span>
+                </div>
+                <VerdictBadge status="fake" size="sm" />
+              </div>
+
+              {/* Claim Statement */}
+              <div>
+                <span className="text-xs font-semibold text-fg-muted uppercase tracking-wider block mb-1">
+                  Checked claim
+                </span>
+                <p className="text-base sm:text-lg font-medium text-fg">
+                  The Great Wall of China is visible from space with the naked eye
+                </p>
+              </div>
+
+              {/* Confidence Score Bar */}
+              <div className="pt-1">
+                <ConfidenceMeter confidence={94} status="fake" />
+              </div>
+
+              {/* 2-Sentence Plain Explanation */}
+              <div>
+                <span className="text-xs font-semibold text-fg-muted uppercase tracking-wider block mb-1">
+                  Summary
+                </span>
+                <p className="text-sm text-fg leading-relaxed">
+                  Astronauts and orbital imagery confirm that the Great Wall cannot be distinguished from low Earth orbit with the unaided eye. Because it is only a few meters wide and made of indigenous stone that matches the surrounding terrain, it produces virtually no optical contrast against the landscape.
+                </p>
+              </div>
+
+              {/* 2 Real Source Links */}
+              <div className="pt-1 space-y-2">
+                <span className="text-xs font-semibold text-fg-muted uppercase tracking-wider block">
+                  Cited sources
+                </span>
+                <div className="space-y-1.5">
+                  <a
+                    href="https://www.nasa.gov/vision/space/workinginspace/great_wall.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2 border border-line hover:border-primary/40 text-xs transition-colors group"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="font-semibold text-fg group-hover:text-primary">
+                        NASA
+                      </span>
+                      <span className="text-fg-muted truncate">
+                        nasa.gov/vision/space/workinginspace/great_wall
+                      </span>
+                    </div>
+                    <svg className="w-3.5 h-3.5 text-fg-muted group-hover:text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+
+                  <a
+                    href="https://www.britannica.com/story/is-the-great-wall-of-china-visible-from-space"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2 border border-line hover:border-primary/40 text-xs transition-colors group"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="font-semibold text-fg group-hover:text-primary">
+                        Encyclopaedia Britannica
+                      </span>
+                      <span className="text-fg-muted truncate">
+                        britannica.com/story/is-the-great-wall-of-china...
+                      </span>
+                    </div>
+                    <svg className="w-3.5 h-3.5 text-fg-muted group-hover:text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Column: 5 Numbered Editorial Callouts */}
+          <div className="lg:col-span-5 space-y-4">
+            {[
+              {
+                num: "1",
+                title: "A clear verdict",
+                desc: "True, False, or Misleading—no vague corporate jargon or non-answers.",
+              },
+              {
+                num: "2",
+                title: "How sure we are",
+                desc: "Transparent confidence scoring based on source consensus and evidence depth.",
+              },
+              {
+                num: "3",
+                title: "Plain explanation",
+                desc: "The factual context summarized in 2 to 3 readable, direct sentences.",
+              },
+              {
+                num: "4",
+                title: "Sources you can open",
+                desc: "Direct links to reputable institutions, encyclopedias, and verified reporting.",
+              },
+              {
+                num: "5",
+                title: "One-tap sharing",
+                desc: "Easily copy or forward the breakdown back to the person who sent you the rumor.",
+              },
+            ].map((item) => (
+              <div
+                key={item.num}
+                className="flex items-start gap-3.5 p-3.5 rounded-xl bg-surface border border-line"
+              >
+                <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-serif font-bold text-sm flex items-center justify-center shrink-0 border border-primary/20">
+                  {item.num}
+                </span>
+                <div>
+                  <h3 className="font-semibold text-sm text-fg">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-fg-muted mt-0.5 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* 3. HOW IT WORKS */}
@@ -240,142 +235,210 @@ export default function LandingPage() {
         aria-labelledby="how-it-works-heading"
         className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-b border-line scroll-mt-20"
       >
-        <Reveal>
-          <div className="text-center mb-12 sm:mb-16">
-            <h2
-              id="how-it-works-heading"
-              className="text-2xl sm:text-3xl lg:text-4xl font-bold text-fg font-display tracking-tight"
+        <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+          <h2
+            id="how-it-works-heading"
+            className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-fg tracking-tight"
+          >
+            Three simple steps to the facts
+          </h2>
+          <p className="text-sm sm:text-base text-fg-muted mt-2">
+            No complex jargon. From rumor to verified receipts in seconds.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {HOW_IT_WORKS_STEPS.map((step) => (
+            <Card
+              key={step.step}
+              className="p-6 sm:p-7 border border-line bg-surface rounded-2xl flex flex-col justify-between"
             >
-              How it works
-            </h2>
-            <p className="text-sm sm:text-base text-fg-muted mt-2 max-w-xl mx-auto">
-              From an unverified forwarded claim to an evidence-backed answer in four transparent steps.
-            </p>
-          </div>
-
-          {/* 4 Steps using SpotlightCard effect */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-            {STEPS.map((step) => (
-              <SpotlightCard
-                key={step.num}
-                theme={isDark ? "dark" : "light"}
-                spotlightColor={isDark ? "#38bdf8" : "#2563eb"}
-                intensity={isDark ? 0.22 : 0.12}
-                spotlightSize={260}
-                softness={0.7}
-                borderGlow={0.65}
-                proximity={90}
-                smoothing={0.28}
-                flare={true}
-                className="flex flex-col justify-between h-full p-6 sm:p-7 border border-line rounded-2xl transition-all"
-                style={{
-                  "--spotlight-card-surface": "var(--color-surface)",
-                  "--spotlight-card-border": "var(--color-line)",
-                }}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-5">
-                    <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/25 font-bold font-mono text-sm flex items-center justify-center">
-                      {step.num}
-                    </span>
-                    <span className="w-9 h-9 rounded-lg bg-surface-2 flex items-center justify-center text-primary">
-                      <svg
-                        className="w-5 h-5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        aria-hidden="true"
-                      >
-                        {step.icon}
-                      </svg>
-                    </span>
-                  </div>
-
-                  <h3 className="text-base sm:text-lg font-bold text-fg font-display mb-2">
-                    {step.title}
-                  </h3>
-
-                  <p className="text-xs sm:text-sm text-fg-muted leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
-              </SpotlightCard>
-            ))}
-          </div>
-        </Reveal>
-      </section>
-
-      {/* 4. WHY IT'S DIFFERENT (FEATURE GRID) */}
-      <section
-        aria-labelledby="why-different-heading"
-        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-b border-line"
-      >
-        <Reveal>
-          <div className="text-center mb-12 sm:mb-16">
-            <h2
-              id="why-different-heading"
-              className="text-2xl sm:text-3xl lg:text-4xl font-bold text-fg font-display tracking-tight"
-            >
-              Why it&apos;s different
-            </h2>
-            <p className="text-sm sm:text-base text-fg-muted mt-2 max-w-xl mx-auto">
-              Engineered for fast verification, citation integrity, and long-term accuracy.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {FEATURES.map((item, idx) => (
-              <Card
-                key={idx}
-                className="p-5 sm:p-6 hover:-translate-y-1 transition duration-200"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                  <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
-                  >
-                    {item.icon}
-                  </svg>
-                </div>
-                <h3 className="text-base font-bold text-fg mb-1.5">
-                  {item.title}
+              <div>
+                <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-serif font-bold text-base flex items-center justify-center border border-primary/25 mb-4">
+                  {step.step}
+                </span>
+                <h3 className="font-serif font-bold text-lg text-fg mb-2">
+                  {step.title}
                 </h3>
                 <p className="text-xs sm:text-sm text-fg-muted leading-relaxed">
-                  {item.desc}
+                  {step.desc}
                 </p>
-              </Card>
-            ))}
-          </div>
-        </Reveal>
+              </div>
+            </Card>
+          ))}
+        </div>
       </section>
 
-      {/* 5. BUILT WITH */}
+      {/* 4. COMMON FORWARDS GRID ("Not sure where to start?") */}
       <section
-        aria-label="Built with"
-        className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center"
+        aria-labelledby="common-forwards-heading"
+        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-b border-line"
       >
-        <Reveal>
-          <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-4">
-            Built with
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
+          <h2
+            id="common-forwards-heading"
+            className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-fg tracking-tight"
+          >
+            Not sure where to start?
+          </h2>
+          <p className="text-sm sm:text-base text-fg-muted mt-2">
+            Click any common rumor below to inspect it in the verifier.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {TECH_BADGES.map((badge, idx) => (
-              <Badge
-                key={idx}
-                variant="neutral"
-                size="md"
-                className="px-3 py-1 font-medium text-xs text-fg-muted hover:text-fg transition-colors"
-              >
-                {badge}
-              </Badge>
-            ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {COMMON_FORWARDS.map((claimText, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleCardClick(claimText)}
+              className="p-4 sm:p-5 rounded-2xl bg-surface border border-line text-left hover:border-primary/50 hover:bg-surface-2 transition-all cursor-pointer group flex flex-col justify-between min-h-[110px]"
+            >
+              <p className="text-sm font-medium text-fg group-hover:text-primary transition-colors leading-snug">
+                &ldquo;{claimText}&rdquo;
+              </p>
+              <div className="flex items-center gap-1.5 text-xs text-primary font-medium mt-3">
+                <span>Check claim</span>
+                <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. TRANSPARENCY & LIMITATIONS ("We show our work") */}
+      <section
+        aria-labelledby="transparency-heading"
+        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto border-b border-line"
+      >
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <h2
+            id="transparency-heading"
+            className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-fg tracking-tight"
+          >
+            We show our work
+          </h2>
+          <p className="text-sm sm:text-base text-fg-muted mt-2">
+            Honest, accountable fact-checking with zero black boxes.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <div className="p-5 rounded-2xl bg-surface border border-line text-center sm:text-left">
+            <div className="w-8 h-8 rounded-lg bg-success-soft text-success flex items-center justify-center mb-3 mx-auto sm:mx-0">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-sm text-fg mb-1">
+              Primary citations
+            </h3>
+            <p className="text-xs text-fg-muted leading-relaxed">
+              We link primary sources for every check so you can read the documents directly.
+            </p>
           </div>
-        </Reveal>
+
+          <div className="p-5 rounded-2xl bg-surface border border-line text-center sm:text-left">
+            <div className="w-8 h-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center mb-3 mx-auto sm:mx-0">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-sm text-fg mb-1">
+              Clear confidence
+            </h3>
+            <p className="text-xs text-fg-muted leading-relaxed">
+              We state our confidence percentage clearly instead of pretending every query is simple.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-surface border border-line text-center sm:text-left">
+            <div className="w-8 h-8 rounded-lg bg-warning-soft text-warning flex items-center justify-center mb-3 mx-auto sm:mx-0">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-sm text-fg mb-1">
+              Disputed claims
+            </h3>
+            <p className="text-xs text-fg-muted leading-relaxed">
+              We say so when the evidence is disputed or unclear, never inventing consensus.
+            </p>
+          </div>
+        </div>
+
+        {/* Honest footnote */}
+        <div className="p-4 rounded-xl bg-surface-2 border border-line text-center max-w-2xl mx-auto">
+          <p className="text-xs text-fg-muted italic leading-relaxed">
+            AI can make mistakes. For medical, legal, or high-stakes decisions, always open the cited sources and read primary documentation.
+          </p>
+        </div>
+      </section>
+
+      {/* 6. PLAIN LANGUAGE FAQ (Native <details> Accordion) */}
+      <section
+        aria-labelledby="faq-heading"
+        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-b border-line"
+      >
+        <div className="text-center mb-12">
+          <h2
+            id="faq-heading"
+            className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-fg tracking-tight"
+          >
+            Frequently asked questions
+          </h2>
+          <p className="text-sm sm:text-base text-fg-muted mt-2">
+            Common questions about accuracy, privacy, and how checks work.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {FAQS.map((faq, idx) => (
+            <details
+              key={idx}
+              className="group bg-surface border border-line rounded-2xl p-4 sm:p-5 transition-colors open:bg-surface-2/40"
+            >
+              <summary className="flex items-center justify-between font-semibold text-sm sm:text-base text-fg cursor-pointer list-none select-none">
+                <span>{faq.q}</span>
+                <span className="text-fg-muted group-open:rotate-180 transition-transform ml-4 shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </span>
+              </summary>
+              <p className="text-xs sm:text-sm text-fg-muted mt-3 pt-3 border-t border-line/60 leading-relaxed">
+                {faq.a}
+              </p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* 7. CLOSING BANNER STRIP */}
+      <section
+        aria-label="Call to action"
+        className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center"
+      >
+        <div className="p-8 sm:p-12 rounded-3xl bg-surface border border-line text-center space-y-4 shadow-xs">
+          <h2 className="font-serif font-bold text-2xl sm:text-3xl text-fg">
+            Got a claim you want to check?
+          </h2>
+          <p className="text-sm sm:text-base text-fg-muted max-w-md mx-auto leading-relaxed">
+            Verify any forwarded message or headline right now. No signup or credit card required.
+          </p>
+          <div className="pt-2">
+            <Button
+              variant="primary"
+              size="lg"
+              to="/app"
+              className="min-h-[48px] px-8 text-base font-semibold"
+            >
+              Verify a claim now
+            </Button>
+          </div>
+        </div>
       </section>
     </div>
   );

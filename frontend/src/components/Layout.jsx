@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
 import Navbar from "../Navigatiaon/Nav_bar";
 import Footer from "./Footer";
 import { useAppAuth } from "../auth/useAppAuth";
@@ -11,6 +12,7 @@ const BACKEND_URL = RAW_URL.replace(/\/+$/, "");
 
 export default function Layout() {
   const { isLoaded, isSignedIn, showToast } = useAppAuth();
+  const location = useLocation();
   const adoptingRef = useRef(false);
 
   useEffect(() => {
@@ -61,8 +63,19 @@ export default function Layout() {
         Skip to content
       </a>
       <Navbar />
-      <main id="main" className="flex-1 w-full">
-        <Outlet />
+      <main id="main" className="flex-1 w-full overflow-x-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+            className="w-full h-full flex-1"
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
       <Footer />
     </div>

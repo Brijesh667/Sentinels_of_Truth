@@ -1,7 +1,4 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "../../theme/ThemeProvider";
-import SpecularButton from "../reactbits/SpecularButton";
 
 export default function Button({
   children,
@@ -17,26 +14,6 @@ export default function Button({
   ...rest
 }) {
   const navigate = useNavigate();
-  const { resolvedTheme } = useTheme();
-  const [canHover, setCanHover] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const hoverQuery = window.matchMedia("(hover: hover)");
-    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    const check = () => {
-      setCanHover(hoverQuery.matches && !motionQuery.matches);
-    };
-
-    check();
-    hoverQuery.addEventListener("change", check);
-    motionQuery.addEventListener("change", check);
-    return () => {
-      hoverQuery.removeEventListener("change", check);
-      motionQuery.removeEventListener("change", check);
-    };
-  }, []);
 
   const handleClick = (e) => {
     if (disabled || loading) {
@@ -51,7 +28,7 @@ export default function Button({
 
   const spinner = (
     <svg
-      className="animate-spin -ml-0.5 mr-1.5 h-4 w-4 text-current"
+      className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-current shrink-0"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -73,42 +50,21 @@ export default function Button({
     </svg>
   );
 
-  if (variant === "primary") {
-    const isDark = resolvedTheme === "dark";
-    return (
-      <SpecularButton
-        size={size}
-        type={type}
-        disabled={disabled || loading}
-        onClick={handleClick}
-        followMouse={canHover}
-        tint="#2563eb"
-        tintOpacity={0.95}
-        baseColor="#1d4ed8"
-        textColor="#ffffff"
-        lineColor="#ffffff"
-        glow={isDark ? 1 : 0.7}
-        intensity={isDark ? 1 : 0.85}
-        className={`${className} ${loading ? "opacity-75 cursor-wait" : ""}`}
-        style={style}
-        {...rest}
-      >
-        {loading && spinner}
-        {children}
-      </SpecularButton>
-    );
-  }
-
   const sizeClasses = {
-    sm: "px-3 py-1.5 text-xs rounded-lg",
-    md: "px-4 py-2.5 text-sm rounded-xl",
-    lg: "px-6 py-3 text-base rounded-2xl",
+    sm: "min-h-[44px] px-3.5 py-2 text-xs font-medium rounded-lg",
+    md: "min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-xl",
+    lg: "min-h-[48px] px-6 py-3 text-base font-semibold rounded-xl",
   };
 
   const variantClasses = {
+    primary:
+      "bg-primary text-primary-fg hover:bg-primary-hover shadow-xs active:scale-[0.98]",
     secondary:
-      "bg-surface text-fg border border-line hover:bg-surface-2 shadow-xs",
-    ghost: "text-fg-muted hover:text-fg hover:bg-surface-2",
+      "bg-surface text-fg border border-line hover:bg-surface-2 shadow-xs active:scale-[0.98]",
+    ghost:
+      "bg-transparent text-fg-muted hover:text-fg hover:bg-surface-2 active:scale-[0.98]",
+    danger:
+      "bg-transparent text-danger border border-danger/40 hover:bg-danger-soft hover:border-danger shadow-xs active:scale-[0.98]",
   };
 
   return (
@@ -116,10 +72,10 @@ export default function Button({
       type={type}
       disabled={disabled || loading}
       onClick={handleClick}
-      className={`inline-flex items-center justify-center font-medium transition duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${
+      className={`inline-flex items-center justify-center transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
         sizeClasses[size] || sizeClasses.md
-      } ${variantClasses[variant] || variantClasses.secondary} ${
-        loading ? "cursor-wait" : ""
+      } ${variantClasses[variant] || variantClasses.primary} ${
+        loading ? "cursor-wait opacity-80" : ""
       } ${className}`}
       style={style}
       {...rest}

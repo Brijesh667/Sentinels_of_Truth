@@ -6,6 +6,7 @@ const BACKEND_URL = RAW_URL.replace(/\/+$/, "");
 
 export async function streamVerify({
   query,
+  skipCache = false,
   signal,
   token,
   onProgress,
@@ -32,7 +33,7 @@ export async function streamVerify({
     const response = await fetch(`${BACKEND_URL}/get/validate-stream`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, skipCache }),
       signal,
     });
 
@@ -50,6 +51,7 @@ export async function streamVerify({
           if (freshToken) {
             return streamVerify({
               query,
+              skipCache,
               signal,
               token: freshToken,
               onProgress,

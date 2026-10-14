@@ -1,32 +1,38 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { useAppAuth } from "../auth/useAppAuth";
 import axiosClient from "../utils/axiosClient";
 import { streamVerify } from "../utils/streamVerify";
-import Header from "./Header";
 import SuggestionDropdown from "./SuggestionDropdown";
 import ResponseCard from "./ResponseCard";
-import HistoryPanel from "./HistoryPanel";
+import HistorySheet from "./HistorySheet";
 import ThoughtLine from "./reactbits/ThoughtLine";
 import Button from "./ui/Button";
+import Chip from "./ui/Chip";
 
 const EXAMPLE_CHIPS = [
   "Is Earth flat?",
   "Do vaccines cause autism?",
-  "Is the Great Wall of China visible from space?",
   "Do we use only 10% of our brain?",
   "Is the Taj Mahal in Agra?",
-  "Does drinking hot water cure COVID-19?",
 ];
 
 const STAGE_LABELS = {
-  checking_cache: "Checking the verified database",
-  searching: "Searching the web for evidence",
-  analyzing: "Weighing the evidence",
+  checking_cache: "Checking verified records...",
+  searching: "Searching reputable sources...",
+  analyzing: "Weighing the evidence...",
 };
 
-export default function QueryForm() {
-  const { getAccessToken, isSignedIn, openSignIn } = useAppAuth();
+export default function QueryForm({
+  isLanding = false,
+  title,
+  subtitle,
+} = {}) {
+  const { isSignedIn, openSignIn } = useAppAuth();
+  const location = useLocation();
+
   const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [result, setResult] = useState(null);
@@ -37,20 +43,77 @@ export default function QueryForm() {
   const [cooldown, setCooldown] = useState(0);
   const [isDailyLimitReached, setIsDailyLimitReached] = useState(false);
   const [historyTrigger, setHistoryTrigger] = useState(0);
-  const [isReducedMotion, setIsReducedMotion] = useState(false);
+  const [historySheetOpen, setHistorySheetOpen] = useState(false);
+  const [isSlowColdStart, setIsSlowColdStart] = useState(false);
 
   const abortControllerRef = useRef(null);
   const textareaRef = useRef(null);
+  const autoRunHandledRef = useRef(false);
+  const coldStartTimerRef = useRef(null);
+  const handleSubmitRef = useRef();
 
-  // Check reduced motion preference
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setIsReducedMotion(mq.matches);
-    const handler = (e) => setIsReducedMotion(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+  // Auto-grow textarea
+  const adjustTextareaHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const minHeight = 96;
+    const maxHeight = 220;
+    const scrollH = el.scrollHeight;
+    const clampedH = Math.min(Math.max(scrollH, minHeight), maxHeight);
+    el.style.height = `${clampedH}px`;
+    el.style.overflowY = scrollH > maxHeight ? "auto" : "hidden";
   }, []);
+
+  // Listen for external claim select (e.g. from cards on landing page)
+  useEffect(() => {
+    const handler = (e) => {
+      const text = e.detail;
+      if (text && typeof text === "string") {
+        const clean = text.slice(0, 300);
+        setQuery(clean);
+        if (textareaRef.current) {
+          textareaRef.current.value = clean;
+          adjustTextareaHeight();
+          textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+          textareaRef.current.focus();
+        }
+        handleSubmitRef.current?.(clean);
+      }
+    };
+    window.addEventListener("sot:set-claim", handler);
+    return () => window.removeEventListener("sot:set-claim", handler);
+  }, [adjustTextareaHeight]);
+
+  // Handle location state prefill / auto-run or ?q= query param
+  useEffect(() => {
+    if (autoRunHandledRef.current) return;
+
+    const searchParams = new URLSearchParams(location.search);
+    const qParam = searchParams.get("q");
+    const incomingText = location.state?.claim || qParam;
+
+    if (incomingText) {
+      autoRunHandledRef.current = true;
+      const cleanClaim = String(incomingText).slice(0, 300);
+      setQuery(cleanClaim);
+
+      if (location.state?.autorun) {
+        setTimeout(() => {
+          handleSubmit(cleanClaim);
+        }, 120);
+      } else {
+        setTimeout(() => {
+          adjustTextareaHeight();
+          textareaRef.current?.focus();
+        }, 80);
+      }
+
+      try {
+        window.history.replaceState({}, document.title);
+      } catch {}
+    }
+  }, [location.state, location.search, adjustTextareaHeight]);
 
   // Countdown timer for GAP rate limit
   useEffect(() => {
@@ -67,20 +130,10 @@ export default function QueryForm() {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      if (coldStartTimerRef.current) {
+        clearTimeout(coldStartTimerRef.current);
+      }
     };
-  }, []);
-
-  // Textarea auto-grow between 3 and 8 rows (approx 96px to 220px)
-  const adjustTextareaHeight = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    const minHeight = 96;
-    const maxHeight = 220;
-    const scrollH = el.scrollHeight;
-    const clampedH = Math.min(Math.max(scrollH, minHeight), maxHeight);
-    el.style.height = `${clampedH}px`;
-    el.style.overflowY = scrollH > maxHeight ? "auto" : "hidden";
   }, []);
 
   const handleInputChange = (e) => {
@@ -109,26 +162,82 @@ export default function QueryForm() {
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setResult({
-      data: suggestion.data,
-      origin: "verified_db",
-      cached: true,
-      query: suggestion.text,
-    });
-    setQuery(suggestion.text);
+    let rawData = suggestion?.data;
+    if (typeof rawData === "string") {
+      try {
+        rawData = JSON.parse(rawData);
+      } catch {}
+    }
+
+    const claimText =
+      typeof suggestion === "string"
+        ? suggestion
+        : suggestion?.text ||
+          rawData?.claim ||
+          rawData?.text ||
+          "";
+
     setShowSuggestions(false);
     setSuggestions([]);
-    setIsStopped(false);
-    setTimeout(adjustTextareaHeight, 0);
+    setQuery("");
+
+    if (rawData && (rawData.verification_status || rawData.summary)) {
+      let sources = rawData.sources;
+      if (typeof sources === "string") {
+        try {
+          sources = JSON.parse(sources);
+        } catch {}
+      }
+
+      setResult({
+        data: {
+          ...rawData,
+          sources: Array.isArray(sources) ? sources : [],
+        },
+        origin: "verified_db",
+        cached: true,
+        query: claimText,
+        isFromDbSuggestion: true,
+      });
+      setSubmittedQuery(claimText);
+      setIsStopped(false);
+      setLoading(false);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+    } else if (claimText) {
+      handleSubmit(claimText);
+    }
+  };
+
+  const handleReverify = (overrideQuery) => {
+    const textToReverify = (
+      typeof overrideQuery === "string"
+        ? overrideQuery
+        : submittedQuery || result?.query || result?.data?.claim || query
+    ).trim();
+    if (!textToReverify) return;
+
+    setQuery(textToReverify);
+    if (textareaRef.current) {
+      textareaRef.current.value = textToReverify;
+      setTimeout(adjustTextareaHeight, 0);
+    }
+
+    handleSubmit(textToReverify, { skipCache: true });
   };
 
   const handleSelectHistory = (historyItem) => {
     if (historyItem) {
       setResult(historyItem);
-      setQuery(historyItem.query || historyItem.claim || "");
+      const histText = historyItem.query || historyItem.claim || "";
+      setSubmittedQuery(histText);
+      setQuery("");
       setIsStopped(false);
       setLoading(false);
-      setTimeout(adjustTextareaHeight, 0);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
     }
   };
 
@@ -137,14 +246,28 @@ export default function QueryForm() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    if (coldStartTimerRef.current) {
+      clearTimeout(coldStartTimerRef.current);
+    }
     setLoading(false);
+    setIsSlowColdStart(false);
     setStage("");
     setIsStopped(true);
   };
 
-  const handleSubmit = async () => {
-    if (!query.trim() || cooldown > 0 || loading || isDailyLimitReached) {
+  const handleSubmit = async (overrideQuery, options = {}) => {
+    handleSubmitRef.current = handleSubmit;
+    const textToSubmit = (typeof overrideQuery === "string" ? overrideQuery : query).trim();
+    if (!textToSubmit || cooldown > 0 || loading || isDailyLimitReached) {
       return;
+    }
+
+    const skipCache = Boolean(options?.skipCache);
+
+    setSubmittedQuery(textToSubmit);
+    setQuery("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
     }
 
     if (abortControllerRef.current) {
@@ -155,55 +278,74 @@ export default function QueryForm() {
 
     setLoading(true);
     setIsStopped(false);
-    setStage("checking_cache");
-    setSteps(["Checking the verified database"]);
+    setIsSlowColdStart(false);
+    setStage(skipCache ? "searching" : "checking_cache");
+    setSteps([
+      skipCache
+        ? "Searching reputable sources..."
+        : "Checking verified records...",
+    ]);
     setResult(null);
     setShowSuggestions(false);
     setSuggestions([]);
 
+    // 5-second cold start grace timer
+    if (coldStartTimerRef.current) clearTimeout(coldStartTimerRef.current);
+    coldStartTimerRef.current = setTimeout(() => {
+      setIsSlowColdStart(true);
+    }, 5000);
+
     await streamVerify({
-      query: query.trim(),
+      query: textToSubmit,
+      skipCache,
       signal: controller.signal,
       onProgress: (newStage) => {
+        if (coldStartTimerRef.current) clearTimeout(coldStartTimerRef.current);
+        setIsSlowColdStart(false);
+
         setStage(newStage);
         const stageLabel =
           STAGE_LABELS[newStage] ||
           (newStage === "checking_cache"
-            ? "Checking the verified database"
+            ? "Checking verified records..."
             : newStage === "searching"
-            ? "Searching the web for evidence"
-            : "Weighing the evidence");
+            ? "Searching reputable sources..."
+            : "Weighing the evidence...");
         setSteps((prev) =>
           prev.includes(stageLabel) ? prev : [...prev, stageLabel]
         );
       },
       onResult: async (alphaResponse) => {
+        if (coldStartTimerRef.current) clearTimeout(coldStartTimerRef.current);
         setLoading(false);
+        setIsSlowColdStart(false);
         setStage("");
+
         if (alphaResponse?.success === false) {
           setResult({
-            error: alphaResponse.error || "Verification failed",
+            error: alphaResponse.error || "Verification failed. Please try again.",
             took_ms: alphaResponse.took_ms,
-            query: query.trim(),
+            query: textToSubmit,
           });
           return;
         }
+
         setResult(alphaResponse);
 
-        // Auto-open after guest's last free check
         if (!isSignedIn && alphaResponse?.guestRemaining === 0) {
           setTimeout(() => {
             openSignIn();
           }, 800);
         }
 
-        // Refresh user history list
         if (isSignedIn) {
           setHistoryTrigger((prev) => prev + 1);
         }
       },
       onError: (errorData, status) => {
+        if (coldStartTimerRef.current) clearTimeout(coldStartTimerRef.current);
         setLoading(false);
+        setIsSlowColdStart(false);
         setStage("");
 
         if (errorData?.code === "LOGIN_REQUIRED") {
@@ -211,9 +353,8 @@ export default function QueryForm() {
           return;
         }
 
-        if (errorData?.code === "GAP") {
-          const retryAfter = Number(errorData?.retryAfter) || 30;
-          setCooldown(retryAfter);
+        if (errorData?.code === "GAP" && errorData.retryAfterSeconds) {
+          setCooldown(errorData.retryAfterSeconds);
           return;
         }
 
@@ -227,18 +368,18 @@ export default function QueryForm() {
         }
 
         const errorMessage =
-          errorData?.error || "Something went wrong. Please try again.";
+          errorData?.error || "We couldn't reach the verification service. Please try again.";
 
         setResult({
           response: errorMessage,
           code: errorData?.code,
-          query: query.trim(),
+          query: textToSubmit,
         });
       },
     });
   };
 
-  // Autocomplete suggestions
+  // Autocomplete suggestion fetcher
   useEffect(() => {
     if (!query || query.trim().length < 2) {
       setSuggestions([]);
@@ -285,7 +426,7 @@ export default function QueryForm() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Click outside suggestions listener
+  // Click outside to dismiss suggestions
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (e.target.closest(".suggestion-container") === null) {
@@ -296,166 +437,220 @@ export default function QueryForm() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const showChips =
-    !query.trim() && !result && !loading && !isStopped;
-
-  // Character counter color classes
-  const counterClass =
-    query.length >= 300
-      ? "text-danger font-semibold"
-      : query.length >= 270
-      ? "text-warning font-medium"
-      : "text-fg-muted";
+  const showChips = !query.trim() && !result && !loading && !isStopped;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8 items-start">
-      {/* Main Column */}
-      <div className="min-w-0 space-y-6">
-        <Header />
+    <div className={`max-w-2xl sm:max-w-3xl mx-auto space-y-6 ${isLanding ? "px-0 py-0" : "px-4 py-8"}`}>
+      {/* 1. Header & Top Action Bar */}
+      {isLanding ? (
+        <div className="text-center max-w-3xl mx-auto space-y-3 pb-2">
+          <h1 className="font-serif font-semibold text-3xl sm:text-5xl md:text-6xl text-fg tracking-tight leading-[1.15]">
+            {title || "Is it true? Check before you share."}
+          </h1>
+          <p className="text-base sm:text-lg md:text-xl text-fg-muted max-w-xl mx-auto leading-relaxed font-normal">
+            {subtitle || "Paste a claim, news headline, or WhatsApp forward. Get a clear verdict, the sources behind it, and how sure we are."}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-line">
+          <div>
+            <h1 className="font-serif font-bold text-3xl sm:text-4xl text-fg tracking-tight">
+              {title || "Check a claim"}
+            </h1>
+            <p className="text-sm sm:text-base text-fg-muted mt-1 leading-relaxed">
+              {subtitle || "Paste a claim or forward. We'll cross-reference live sources and show the receipts."}
+            </p>
+          </div>
 
-        {/* Input Card */}
-        <div className="relative z-10 suggestion-container bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs transition-colors">
-          <label htmlFor="claim-input" className="sr-only">
-            Claim or statement to verify
-          </label>
-          <textarea
-            id="claim-input"
-            ref={textareaRef}
-            value={query}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Is it true that...?"
-            rows={3}
-            maxLength={300}
-            className="w-full bg-transparent text-fg outline-hidden text-base sm:text-lg placeholder:text-fg-muted caret-primary resize-none transition-colors leading-relaxed"
-          />
+          <div className="shrink-0 flex items-center">
+            {isSignedIn ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setHistorySheetOpen(true)}
+                className="gap-2 text-xs sm:text-sm font-medium min-h-[40px] px-3.5"
+              >
+                <svg className="w-4 h-4 text-fg-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>History</span>
+              </Button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openSignIn()}
+                className="text-xs text-primary hover:underline font-medium cursor-pointer"
+              >
+                
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
-          {/* Bottom row of input card: hints, counter & action button */}
-          <div className="flex items-center justify-between pt-3 border-t border-line text-xs gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-fg-muted hidden sm:inline">
-                Ctrl + Enter to check
+      {/* 2. Input Box */}
+      <div className="relative z-10 suggestion-container bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs focus-within:border-fg-muted/40 focus-within:ring-0 focus-within:outline-none">
+        <label htmlFor="claim-input" className="sr-only">
+          Claim or statement to verify
+        </label>
+        <textarea
+          id="claim-input"
+          ref={textareaRef}
+          value={query}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          placeholder={
+            isLanding
+              ? "e.g. Does drinking hot water cure COVID-19? or paste any forwarded rumor..."
+              : "Is it true that...?"
+          }
+          rows={3}
+          maxLength={300}
+          className="w-full bg-transparent text-fg outline-none focus:outline-none focus:ring-0 focus-visible:outline-none text-base sm:text-lg placeholder:text-fg-muted/70 caret-primary resize-none leading-relaxed"
+          style={{ fontSize: "16px" }}
+        />
+
+        {/* Input Footer: shortcut hint, counter & buttons */}
+        <div className="flex items-center justify-between pt-3 mt-2 border-t border-line/60 text-xs gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            {isLanding && (
+              <span className="text-xs text-fg-muted hidden sm:inline">
+                No account needed to try.
               </span>
-              <div className={counterClass} aria-live="polite">
-                {query.length}/300
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {loading ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleStop}
-                  className="text-danger border-danger/40 hover:bg-danger-soft hover:border-danger/60 min-h-[36px] px-3.5 gap-1.5 font-semibold text-xs sm:text-sm cursor-pointer shadow-xs"
-                >
-                  <svg
-                    className="w-3.5 h-3.5 fill-current flex-shrink-0"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <rect x="5" y="5" width="14" height="14" rx="2" />
-                  </svg>
-                  <span>Stop</span>
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleSubmit}
-                  disabled={
-                    cooldown > 0 ||
-                    isDailyLimitReached ||
-                    !query.trim()
-                  }
-                  className="min-h-[36px] px-4 font-semibold text-xs sm:text-sm"
-                >
-                  {isDailyLimitReached
-                    ? "Daily limit reached"
-                    : cooldown > 0
-                    ? `Wait (${cooldown}s)`
-                    : "Verify Fact"}
-                </Button>
-              )}
+            )}
+            <span className="text-fg-muted hidden sm:inline">
+              Ctrl + Enter to check
+            </span>
+            <div
+              className={
+                query.length >= 300
+                  ? "text-danger font-semibold"
+                  : query.length >= 270
+                  ? "text-warning font-medium"
+                  : "text-fg-muted"
+              }
+              aria-live="polite"
+            >
+              {query.length}/300
             </div>
           </div>
 
-          {/* Autocomplete suggestion dropdown */}
-          {showSuggestions && (
-            <SuggestionDropdown
-              suggestions={suggestions}
-              onSelectSuggestion={handleSuggestionClick}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            {loading ? (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleStop}
+                className="min-h-[40px] px-4 font-semibold text-xs sm:text-sm gap-1.5"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+                <span>Stop</span>
+              </Button>
+            ) : cooldown > 0 ? (
+              <span className="inline-flex items-center px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-warning min-h-[40px]">
+                Wait {cooldown}s
+              </span>
+            ) : isDailyLimitReached ? (
+              <span className="inline-flex items-center px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-danger min-h-[40px]">
+                Daily limit reached
+              </span>
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleSubmit()}
+                disabled={!query.trim()}
+                className="min-h-[40px] px-5 font-semibold text-xs sm:text-sm gap-2"
+              >
+                <span>{isLanding ? "Check it" : "Verify"}</span>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Example chips */}
-        {showChips && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider">
-              Try an example
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {EXAMPLE_CHIPS.map((chip, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleChipClick(chip)}
-                  className="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium text-fg bg-surface border border-line hover:border-primary hover:bg-surface-2 transition cursor-pointer min-h-[36px]"
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Suggestion Dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <SuggestionDropdown
+            suggestions={suggestions}
+            onSelect={handleSuggestionClick}
+            onSelectSuggestion={handleSuggestionClick}
+            visible={showSuggestions}
+          />
         )}
-
-        {/* Progress with ThoughtLine */}
-        {loading && (
-          <div
-            className="p-6 bg-surface border border-line rounded-2xl shadow-xs transition-colors"
-            aria-live="polite"
-          >
-            <ThoughtLine
-              working={loading}
-              steps={steps}
-              label="Thinking"
-              doneLabel="Thought for"
-              glyph="sparkle"
-              fontSize={16}
-              breathPeriod={1.6}
-              breathDepth={isReducedMotion ? 0 : 0.45}
-              settleDuration={350}
-              settleBlur={isReducedMotion ? 0 : 2}
-              collapsible
-              collapseOnSettle
-              showTimer
-            />
-          </div>
-        )}
-
-        {/* Verification Result Card */}
-        <ResponseCard
-          result={result}
-          isStopped={isStopped}
-          currentQuery={query}
-          onCheckAnother={() => {
-            setResult(null);
-            setIsStopped(false);
-            if (textareaRef.current) {
-              textareaRef.current.focus();
-            }
-          }}
-        />
       </div>
 
-      {/* History Column (Sticky on desktop lg+, Collapsible underneath on mobile <lg) */}
-      <aside className="lg:sticky lg:top-20">
-        <HistoryPanel
-          onSelectHistory={handleSelectHistory}
-          refreshTrigger={historyTrigger}
-        />
-      </aside>
+      {/* Quick Sample Chips (When idle) */}
+      {showChips && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-fg-muted font-medium mr-1">
+            Try one:
+          </span>
+          {EXAMPLE_CHIPS.map((chipText) => (
+            <Chip
+              key={chipText}
+              onClick={() => handleChipClick(chipText)}
+              className="text-xs sm:text-sm"
+            >
+              {chipText}
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      {/* 3. Real-Time Verification Progress (ThoughtLine) */}
+      {loading && (
+        <div className="p-6 bg-surface border border-line rounded-2xl shadow-xs space-y-3 animate-in fade-in duration-300">
+          <ThoughtLine
+            working={true}
+            steps={steps}
+            label="Verifying"
+            doneLabel="Verified in"
+            glyph="sparkle"
+            fontSize={15}
+            breathPeriod={1.6}
+            breathDepth={0.45}
+            settleDuration={300}
+            settleBlur={2}
+            collapsible
+            collapseOnSettle
+            showTimer
+          />
+
+          {isSlowColdStart && (
+            <p className="text-xs text-fg-muted/80 italic pt-2 border-t border-line/60">
+              Connecting to verification service. The initial check can take a moment...
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* 4. Verdict Card Result */}
+      <ResponseCard
+        result={result}
+        isStopped={isStopped}
+        currentQuery={submittedQuery}
+        onReverify={handleReverify}
+        onCheckAnother={() => {
+          setResult(null);
+          setIsStopped(false);
+          setQuery("");
+          setSubmittedQuery("");
+          textareaRef.current?.focus();
+        }}
+      />
+
+      {/* 5. History Slide-Over Drawer */}
+      <HistorySheet
+        isOpen={historySheetOpen}
+        onClose={() => setHistorySheetOpen(false)}
+        onSelectHistory={handleSelectHistory}
+        refreshTrigger={historyTrigger}
+      />
     </div>
   );
 }

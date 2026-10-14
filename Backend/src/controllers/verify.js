@@ -126,7 +126,7 @@ export const verifyAlphaStream = async (req, res) => {
   const now = () => new Date().toISOString();
   console.log(`[${now()}] stream start`);
 
-  const { query } = req.body;
+  const { query, skipCache, forceFresh } = req.body;
 
   if (!query) {
     return res.status(400).json({
@@ -192,62 +192,72 @@ export const verifyAlphaStream = async (req, res) => {
 
   try {
     // 1. Check semantic cache
-    sendEvent("progress", { stage: "checking_cache" });
-    if (process.env.SEMANTIC_CACHE === "off") {
-      console.log(`[${now()}] cache skipped (disabled)`);
+    const shouldSkipCache = Boolean(
+      skipCache || forceFresh || process.env.SEMANTIC_CACHE === "off"
+    );
+
+    if (shouldSkipCache) {
+      console.log(
+        `[${now()}] cache skipped (${
+          skipCache || forceFresh ? "live re-verify requested" : "disabled"
+        })`
+      );
     } else {
+      sendEvent("progress", { stage: "checking_cache" });
       console.log(`[${now()}] cache check start`);
-    }
 
-    const cacheResult = await findCachedVerdict(query, { signal });
+      const cacheResult = await findCachedVerdict(query, { signal });
 
-    if (signal.aborted) {
-      console.log(`[${now()}] aborted during cache check`);
-      cleanup();
-      if (!res.writableEnded) res.end();
-      return;
-    }
-
-    if (cacheResult.hit) {
-      console.log(`[${now()}] cache hit`);
-      const took_ms = Date.now() - startTime;
-      totalRequests++;
-      cacheHits++;
-      totalCachedMs += took_ms;
-
-      // Refund quota on cache hit
-      req.refundQuota?.();
-
-      const guestHeader = req.headers["x-guest-id"];
-      const validGuestId = isValidGuestId(guestHeader) ? guestHeader.trim() : null;
-
-      const resultPayload = buildResultPayload({
-        alphaResponse: cacheResult.data,
-        query,
-        cacheHit: cacheResult,
-        tookMs: took_ms,
-        guestRemaining:
-          req.guestRemaining !== undefined && !req.user?.id
-            ? req.guestRemaining
-            : undefined,
-      });
-
-      sendEvent("result", resultPayload);
-
-      console.log(`[${now()}] result sent (cached)`);
-      cleanup();
-      if (!res.writableEnded) res.end();
-
-      // Record history for authenticated user or guest
-      if (req.user?.id) {
-        saveHistoryQuietly(req.user.id, resultPayload);
-      } else if (validGuestId) {
-        saveGuestResultQuietly(validGuestId, resultPayload);
+      if (signal.aborted) {
+        console.log(`[${now()}] aborted during cache check`);
+        cleanup();
+        if (!res.writableEnded) res.end();
+        return;
       }
-      return;
-    }
 
-    console.log(`[${now()}] cache miss`);
+      if (cacheResult.hit) {
+        console.log(`[${now()}] cache hit`);
+        const took_ms = Date.now() - startTime;
+        totalRequests++;
+        cacheHits++;
+        totalCachedMs += took_ms;
+
+        // Refund quota on cache hit
+        req.refundQuota?.();
+
+        const guestHeader = req.headers["x-guest-id"];
+        const validGuestId = isValidGuestId(guestHeader)
+          ? guestHeader.trim()
+          : null;
+
+        const resultPayload = buildResultPayload({
+          alphaResponse: cacheResult.data,
+          query,
+          cacheHit: cacheResult,
+          tookMs: took_ms,
+          guestRemaining:
+            req.guestRemaining !== undefined && !req.user?.id
+              ? req.guestRemaining
+              : undefined,
+        });
+
+        sendEvent("result", resultPayload);
+
+        console.log(`[${now()}] result sent (cached)`);
+        cleanup();
+        if (!res.writableEnded) res.end();
+
+        // Record history for authenticated user or guest
+        if (req.user?.id) {
+          saveHistoryQuietly(req.user.id, resultPayload);
+        } else if (validGuestId) {
+          saveGuestResultQuietly(validGuestId, resultPayload);
+        }
+        return;
+      }
+
+      console.log(`[${now()}] cache miss`);
+    }
 
     // 2. Run alpha agent
     console.log(`[${now()}] alpha start`);
