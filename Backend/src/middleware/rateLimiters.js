@@ -60,10 +60,16 @@ function verifyQuotaInMemory(req, res, next, key, limit, userLimit, isUser, now)
   req.refundQuota = () => {
     record.count = prevCount;
     record.lastAt = prevLastAt;
+    if (!isUser) {
+      req.guestRemaining = Math.max(0, limit - record.count);
+    }
   };
 
   record.count++;
   record.lastAt = now;
+  if (!isUser) {
+    req.guestRemaining = Math.max(0, limit - record.count);
+  }
   next();
 }
 
@@ -184,7 +190,14 @@ export async function verifyQuota(req, res, next) {
       } catch (err) {
         console.warn("Failed to refund quota in Mongo:", err.message);
       }
+      if (!isUser) {
+        req.guestRemaining = Math.max(0, limit - prevCount);
+      }
     };
+
+    if (!isUser) {
+      req.guestRemaining = Math.max(0, limit - updated.count);
+    }
 
     next();
   } catch (error) {

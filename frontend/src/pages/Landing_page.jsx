@@ -1,325 +1,394 @@
+import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
+import { useTheme } from "../theme/ThemeProvider";
+import MaskedHeading from "../components/reactbits/MaskedHeading";
+import SpotlightCard from "../components/reactbits/SpotlightCard";
+import Button from "../components/ui/Button";
+import Card from "../components/ui/Card";
+import Badge from "../components/ui/Badge";
+import Reveal from "../components/ui/Reveal";
+import usePageTitle from "../utils/usePageTitle";
+
+// Lazy-load heavier below-the-fold component so the hero paints immediately
+const VerdictShowcase = lazy(() =>
+  import("../components/landing/VerdictShowcase")
+);
+
+const TRUST_POINTS = [
+  "Cites its sources",
+  "Repeat claims answered instantly",
+  "Stop any check, any time",
+];
+
+const STEPS = [
+  {
+    num: "01",
+    title: "You ask",
+    desc: "Paste any claim, breaking news statement, or forwarded rumor in plain language.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.502 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.002z"
+      />
+    ),
+  },
+  {
+    num: "02",
+    title: "Check verified knowledge",
+    desc: "If someone verified the same claim before, you get that answer instantly from the database.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"
+      />
+    ),
+  },
+  {
+    num: "03",
+    title: "Search & weigh evidence",
+    desc: "Live web search gathers sources, then AI evaluates evidence and calculates confidence.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3v17.25m0 0l-4.5-4.5M12 20.25l4.5-4.5M4.5 7.5L12 3l7.5 4.5"
+      />
+    ),
+  },
+  {
+    num: "04",
+    title: "Remember & save history",
+    desc: "Verified claims are stored to answer future queries instantly, and saved to your personal history.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+      />
+    ),
+  },
+];
+
+const FEATURES = [
+  {
+    title: "Instant answers for repeat claims",
+    desc: "Repeated checks bypass web search and serve within milliseconds from our verified database.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+      />
+    ),
+  },
+  {
+    title: "Sources you can open",
+    desc: "Every verdict links directly to live, primary sources with complete transparency.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+      />
+    ),
+  },
+  {
+    title: "Live progress and a Stop button",
+    desc: "Watch verification stages live and abort requests anytime without waiting.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5.25 7.5A2.25 2.25 0 017.5 5.25h9a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25h-9a2.25 2.25 0 01-2.25-2.25v-9z"
+      />
+    ),
+  },
+  {
+    title: "Contradiction and duplicate checks",
+    desc: "Incoming claims are checked against existing knowledge to catch contradictions and duplicates.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3v17.25m0 0l-4.5-4.5M12 20.25l4.5-4.5M4.5 7.5L12 3l7.5 4.5"
+      />
+    ),
+  },
+  {
+    title: "Human review for uncertain cases",
+    desc: "Ambiguous or contested claims are flagged for secondary inspection rather than guessing.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+      />
+    ),
+  },
+  {
+    title: "Your history, saved",
+    desc: "Signed-in members automatically retain private check logs across devices and sessions.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    ),
+  },
+];
+
+const TECH_BADGES = [
+  "React",
+  "Node/Express",
+  "Gemini",
+  "Pinecone",
+  "Tavily",
+  "MongoDB",
+  "Redis",
+  "JWT auth",
+];
 
 export default function LandingPage() {
+  usePageTitle("Sentinels of Truth — Check a claim");
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
-      <main className="flex-1">
-        {/* 1. HERO SECTION */}
-        <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28 px-4 sm:px-6 lg:px-8 border-b border-gray-200/60 bg-linear-to-b from-blue-50/50 via-white to-gray-50">
-          <div className="max-w-5xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-100/80 text-blue-800 border border-blue-200 mb-6">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-              Live Evidence-Based Fact Intelligence
-            </div>
+    <div className="w-full bg-bg text-fg transition-colors">
+      {/* 1. HERO SECTION */}
+      <section
+        aria-label="Hero"
+        className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 px-4 sm:px-6 lg:px-8 border-b border-line"
+      >
+        {/* Subtle radial background decoration */}
+        <div
+          className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-primary/6 rounded-full blur-3xl -z-10"
+          aria-hidden="true"
+        />
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-950 tracking-tight leading-[1.15] mb-6">
-              Sift signal from noise. <br />
-              <span className="text-blue-600">Verify truth</span> with evidence in seconds.
-            </h1>
-
-            <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
-              Autonomous multi-agent research that cross-examines live web sources,
-              detects contradictions, and caches verified knowledge instantly.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto mb-4">
-              <Link
-                to="/app"
-                className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 text-white font-semibold rounded-xl shadow-md hover:bg-blue-700 hover:shadow-lg transition duration-200 text-center"
-              >
-                Verify a claim
-              </Link>
-              <a
-                href="#how-it-works"
-                className="w-full sm:w-auto px-7 py-3.5 bg-white text-gray-700 font-semibold rounded-xl border border-gray-300 hover:bg-gray-50 transition duration-200 text-center"
-              >
-                How it works
-              </a>
-            </div>
-
-            <p className="text-xs text-gray-500 font-medium">
-              No login required for your first 2 checks.
-            </p>
-          </div>
-        </section>
-
-        {/* 2. LIVE SAMPLE RESULT CARD (STATIC) */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <p className="text-xs font-bold tracking-widest text-blue-600 uppercase">
-              Transparent Output
-            </p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">
-              What an evidence verdict looks like
-            </h2>
+        <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
+          {/* MaskedHeading Headline */}
+          <div className="w-full mb-6">
+            <MaskedHeading
+              tag="h1"
+              text="Sift signal from noise. Verify truth with evidence in seconds."
+              src="/hero-mesh.svg"
+              align="center"
+              weight={800}
+              brightness={isDark ? 1.15 : 0.85}
+              saturation={isDark ? 1.25 : 1.45}
+              parallax={18}
+              drift={14}
+              reveal="rise"
+              duration={1.0}
+              className="font-display tracking-tight text-fg"
+              aria-label="Sift signal from noise. Verify truth with evidence in seconds."
+            />
           </div>
 
-          <div
-            className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border-l-4 border-red-500 border border-gray-200"
-            aria-label="Sample fact verification card"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-              <div className="flex items-center gap-3">
-                <h3 className="text-2xl font-bold text-gray-900">Verification Result</h3>
-                <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-full text-xs font-medium">
-                  340ms
-                </span>
-              </div>
-              <span className="px-4 py-1.5 rounded-full font-semibold text-xs border bg-red-100 text-red-800 border-red-300">
-                fake
-              </span>
-            </div>
+          {/* Subtext */}
+          <p className="text-base sm:text-lg md:text-xl text-fg-muted max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed font-normal">
+            Got a forward that sounds off? Paste it here. We check it against live
+            sources, show the evidence, and tell you how sure we are.
+          </p>
 
-            <div className="space-y-5">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  Claim
-                </p>
-                <p className="text-gray-900 font-medium text-base sm:text-lg">
-                  Is Earth flat?
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Confidence Score
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all duration-300"
-                      style={{ width: "98%" }}
-                    ></div>
-                  </div>
-                  <span className="text-xl font-bold text-gray-900">98%</span>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Summary
-                </p>
-                <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-                  Copernican heliocentrism, modern satellite geodesy, circumnavigation physics,
-                  and celestial observational mechanics definitively establish Earth as an
-                  oblate spheroid. Flat Earth hypotheses contradict empirical observations.
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Primary Source
-                </p>
-                <a
-                  href="https://nasa.gov/earth"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-2 p-3 bg-blue-50/80 rounded-xl border border-blue-200 hover:bg-blue-100/80 transition group text-sm"
-                >
-                  <span className="text-blue-600">🔗</span>
-                  <span className="text-blue-600 font-medium truncate group-hover:underline">
-                    https://nasa.gov/earth — NASA Earth Science Observation
-                  </span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 3. HOW IT WORKS */}
-        <section
-          id="how-it-works"
-          className="py-16 bg-white border-y border-gray-200 px-4 sm:px-6 lg:px-8 scroll-mt-14"
-        >
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
-              <p className="text-xs font-bold tracking-widest text-blue-600 uppercase">
-                Architecture
-              </p>
-              <h2 className="text-3xl font-bold text-gray-900 mt-1">
-                How Sentinels of Truth Works
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Step 1 */}
-              <div className="p-6 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg mb-4">
-                  1
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Ask</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  Submit any factual statement or breaking claim in plain natural language.
-                </p>
-              </div>
-
-              {/* Step 2 */}
-              <div className="p-6 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg mb-4">
-                  2
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Search the Web</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  Tavily agent retrieves real-time evidence from verified news and scholarly sources.
-                </p>
-              </div>
-
-              {/* Step 3 */}
-              <div className="p-6 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg mb-4">
-                  3
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">AI Analysis</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  Gemini cross-examines evidence, assigns confidence, and cites source URLs.
-                </p>
-              </div>
-
-              {/* Step 4 */}
-              <div className="p-6 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg mb-4">
-                  4
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Semantic Index</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  Verified claims are stored in Pinecone vector DB so future queries return in sub-second time.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. WHY IT'S DIFFERENT (6 FEATURES) */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <p className="text-xs font-bold tracking-widest text-blue-600 uppercase">
-              Capabilities
-            </p>
-            <h2 className="text-3xl font-bold text-gray-900 mt-1">
-              Built for speed, accuracy, and efficiency
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
-              <div className="text-blue-600 mb-3 text-2xl font-bold">⚡</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Semantic Cache</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Repeated or semantically equivalent claims serve instantly from Pinecone without incurring API credit costs.
-              </p>
-            </div>
-
-            <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
-              <div className="text-blue-600 mb-3 text-2xl font-bold">⏹️</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Live Progress & Stop</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Watch real-time server stages over SSE. Press Stop anytime to abort backend LLM and search calls cleanly.
-              </p>
-            </div>
-
-            <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
-              <div className="text-blue-600 mb-3 text-2xl font-bold">⚖️</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Contradiction Detection</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Secondary AI guard compares incoming verdicts against existing vector entries to catch and resolve conflicting claims.
-              </p>
-            </div>
-
-            <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
-              <div className="text-blue-600 mb-3 text-2xl font-bold">🔍</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Human Review Queue</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Controversial or conflicting evidence is escalated to a dedicated review queue instead of polluting the vector index.
-              </p>
-            </div>
-
-            <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
-              <div className="text-blue-600 mb-3 text-2xl font-bold">🔗</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Direct Source Citations</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Every verdict is tied to original hyperlinks so users can inspect primary evidence independently.
-              </p>
-            </div>
-
-            <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
-              <div className="text-blue-600 mb-3 text-2xl font-bold">📜</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">User History & Quota</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Persistent rate limiting with Clerk auth, giving verified members 20 checks/day and private history logs.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* 5. BUILT WITH */}
-        <section className="py-14 bg-gray-100/70 border-t border-gray-200 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-6">
-              Engineered with Modern Industry Stack
-            </h3>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {[
-                "React 19",
-                "Node / Express",
-                "Google Gemini 2.5",
-                "Pinecone Vector DB",
-                "Tavily Search API",
-                "MongoDB",
-                "Clerk Auth",
-              ].map((tech) => (
-                <span
-                  key={tech}
-                  className="px-4 py-2 bg-white rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 shadow-xs"
-                >
-                  {tech}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 6. FINAL CTA STRIP */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-blue-600 text-white text-center">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">
-              Ready to verify a claim?
-            </h2>
-            <p className="text-blue-100 text-base sm:text-lg mb-8">
-              Experience instant evidence analysis and misinformation defense today.
-            </p>
-            <Link
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-md mx-auto mb-10">
+            {/* Primary CTA: SpecularButton via Button variant="primary" */}
+            <Button
+              variant="primary"
+              size="lg"
               to="/app"
-              className="inline-block px-9 py-3.5 bg-white text-blue-700 font-bold rounded-xl shadow-md hover:bg-blue-50 transition duration-200"
+              className="w-full sm:w-auto min-h-[48px] px-8 text-base font-semibold"
             >
-              Open Verifier
-            </Link>
-          </div>
-        </section>
-      </main>
+              Verify a claim
+            </Button>
 
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-gray-400 py-10 px-4 sm:px-6 lg:px-8 border-t border-gray-800">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
-          <div className="flex items-center gap-2 font-semibold text-white">
-            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
-            Sentinels of Truth
-          </div>
-
-          <div className="text-center sm:text-right">
+            {/* Secondary CTA */}
             <a
-              href="https://github.com/Brijesh667/Sentinels_of_Truth"
-              target="_blank"
-              rel="noreferrer"
-              className="text-gray-300 hover:text-white underline transition"
+              href="#how-it-works"
+              className="inline-flex items-center justify-center w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-2xl border border-line bg-surface text-fg hover:bg-surface-2 font-medium text-sm sm:text-base transition-colors shadow-xs"
             >
-              GitHub Repository
+              See how it works
             </a>
-            <p className="text-xs text-gray-500 mt-1">
-              AI can make mistakes. Verify important information.
-            </p>
+          </div>
+
+          {/* Trust points */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-fg-muted pt-2 border-t border-line/60">
+            {TRUST_POINTS.map((item, idx) => (
+              <span key={idx} className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary flex-none" />
+                <span>{item}</span>
+              </span>
+            ))}
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* 2. SEE WHAT A VERDICT LOOKS LIKE */}
+      <section
+        aria-labelledby="verdict-showcase-heading"
+        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-b border-line"
+      >
+        <Reveal>
+          <Suspense
+            fallback={
+              <div className="w-full h-80 rounded-2xl bg-surface-2/60 animate-pulse border border-line flex items-center justify-center text-xs text-fg-muted">
+                Loading verdict showcase...
+              </div>
+            }
+          >
+            <VerdictShowcase />
+          </Suspense>
+        </Reveal>
+      </section>
+
+      {/* 3. HOW IT WORKS */}
+      <section
+        id="how-it-works"
+        aria-labelledby="how-it-works-heading"
+        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-b border-line scroll-mt-20"
+      >
+        <Reveal>
+          <div className="text-center mb-12 sm:mb-16">
+            <h2
+              id="how-it-works-heading"
+              className="text-2xl sm:text-3xl lg:text-4xl font-bold text-fg font-display tracking-tight"
+            >
+              How it works
+            </h2>
+            <p className="text-sm sm:text-base text-fg-muted mt-2 max-w-xl mx-auto">
+              From an unverified forwarded claim to an evidence-backed answer in four transparent steps.
+            </p>
+          </div>
+
+          {/* 4 Steps using SpotlightCard effect */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+            {STEPS.map((step) => (
+              <SpotlightCard
+                key={step.num}
+                theme={isDark ? "dark" : "light"}
+                spotlightColor={isDark ? "#38bdf8" : "#2563eb"}
+                intensity={isDark ? 0.22 : 0.12}
+                spotlightSize={260}
+                softness={0.7}
+                borderGlow={0.65}
+                proximity={90}
+                smoothing={0.28}
+                flare={true}
+                className="flex flex-col justify-between h-full p-6 sm:p-7 border border-line rounded-2xl transition-all"
+                style={{
+                  "--spotlight-card-surface": "var(--color-surface)",
+                  "--spotlight-card-border": "var(--color-line)",
+                }}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/25 font-bold font-mono text-sm flex items-center justify-center">
+                      {step.num}
+                    </span>
+                    <span className="w-9 h-9 rounded-lg bg-surface-2 flex items-center justify-center text-primary">
+                      <svg
+                        className="w-5 h-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        aria-hidden="true"
+                      >
+                        {step.icon}
+                      </svg>
+                    </span>
+                  </div>
+
+                  <h3 className="text-base sm:text-lg font-bold text-fg font-display mb-2">
+                    {step.title}
+                  </h3>
+
+                  <p className="text-xs sm:text-sm text-fg-muted leading-relaxed">
+                    {step.desc}
+                  </p>
+                </div>
+              </SpotlightCard>
+            ))}
+          </div>
+        </Reveal>
+      </section>
+
+      {/* 4. WHY IT'S DIFFERENT (FEATURE GRID) */}
+      <section
+        aria-labelledby="why-different-heading"
+        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-b border-line"
+      >
+        <Reveal>
+          <div className="text-center mb-12 sm:mb-16">
+            <h2
+              id="why-different-heading"
+              className="text-2xl sm:text-3xl lg:text-4xl font-bold text-fg font-display tracking-tight"
+            >
+              Why it&apos;s different
+            </h2>
+            <p className="text-sm sm:text-base text-fg-muted mt-2 max-w-xl mx-auto">
+              Engineered for fast verification, citation integrity, and long-term accuracy.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {FEATURES.map((item, idx) => (
+              <Card
+                key={idx}
+                className="p-5 sm:p-6 hover:-translate-y-1 transition duration-200"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                  <svg
+                    className="w-5 h-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    {item.icon}
+                  </svg>
+                </div>
+                <h3 className="text-base font-bold text-fg mb-1.5">
+                  {item.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-fg-muted leading-relaxed">
+                  {item.desc}
+                </p>
+              </Card>
+            ))}
+          </div>
+        </Reveal>
+      </section>
+
+      {/* 5. BUILT WITH */}
+      <section
+        aria-label="Built with"
+        className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center"
+      >
+        <Reveal>
+          <p className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-4">
+            Built with
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {TECH_BADGES.map((badge, idx) => (
+              <Badge
+                key={idx}
+                variant="neutral"
+                size="md"
+                className="px-3 py-1 font-medium text-xs text-fg-muted hover:text-fg transition-colors"
+              >
+                {badge}
+              </Badge>
+            ))}
+          </div>
+        </Reveal>
+      </section>
     </div>
   );
 }

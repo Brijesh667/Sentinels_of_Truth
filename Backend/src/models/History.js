@@ -7,6 +7,11 @@ const historySchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    query: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+    },
     claim: {
       type: String,
       required: true,
@@ -18,6 +23,16 @@ const historySchema = new mongoose.Schema(
     cached: {
       type: Boolean,
       default: false,
+    },
+    origin: {
+      type: String,
+      enum: ["verified_db", "web_search"],
+    },
+    verifiedAt: {
+      type: Date,
+    },
+    matchedClaim: {
+      type: String,
     },
     tookMs: {
       type: Number,

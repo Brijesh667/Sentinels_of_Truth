@@ -1,20 +1,36 @@
-function SuggestionDropdown({ suggestions, onSelectSuggestion }) {
+export default function SuggestionDropdown({ suggestions, onSelectSuggestion }) {
   if (!suggestions || suggestions.length === 0) {
     return null;
   }
 
   return (
-    <div className="absolute top-full left-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-2 z-50 max-h-60 overflow-y-auto">
-      {suggestions?.map((item, index) => {
-       
+    <div
+      role="listbox"
+      aria-label="Fact suggestions"
+      className="absolute top-full left-0 w-full bg-surface border border-line rounded-xl shadow-lg mt-2 z-50 max-h-60 overflow-y-auto transition-colors"
+    >
+      {suggestions.map((item, index) => {
         const displayText =
-          typeof item === "string" ? item : item?.text || item?.data || "";
+          typeof item === "string"
+            ? item
+            : item?.text ||
+              (typeof item?.data === "string"
+                ? item.data
+                : item?.data?.claim || "");
 
         return (
           <div
             key={index}
+            role="option"
+            tabIndex={0}
             onClick={() => onSelectSuggestion(item)}
-            className="px-4 py-3 cursor-pointer hover:bg-gray-100 text-sm text-gray-700 border-b border-gray-100 last:border-b-0"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelectSuggestion(item);
+              }
+            }}
+            className="px-4 py-3 cursor-pointer hover:bg-surface-2 focus:bg-surface-2 focus:outline-hidden text-sm text-fg border-b border-line last:border-b-0 transition-colors min-h-[44px] flex items-center"
           >
             {displayText}
           </div>
@@ -23,5 +39,3 @@ function SuggestionDropdown({ suggestions, onSelectSuggestion }) {
     </div>
   );
 }
-
-export default SuggestionDropdown;

@@ -166,7 +166,8 @@ export async function findCachedVerdict(query, { signal } = {}) {
       hit: true,
       data: formattedData,
       score: bestMatch.score,
-      matchedClaim: bestMatch.metadata?.claim,
+      verifiedAt: bestMatch.metadata?.verified_at || null,
+      matchedClaim: bestMatch.metadata?.claim || null,
     };
   } catch (error) {
     if (signal?.aborted || error.name === "AbortError") {

@@ -1,14 +1,12 @@
-function Header() {
+export default function Header() {
   return (
-    <div className="text-center mb-8">
-      <h1 className="text-3xl md:text-5xl font-bold text-gray-800">
-        Fact Verified Website
+    <div className="text-left mb-6 sm:mb-8">
+      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-fg font-display tracking-tight">
+        Check a claim
       </h1>
-      <p className="text-gray-600 mt-3 text-sm md:text-base px-4">
-        Verify facts, detect misinformation, and store genuine claims.
+      <p className="text-fg-muted mt-2.5 text-sm sm:text-base max-w-xl">
+        Paste a claim or a forwarded message. We check it against live sources and show the evidence.
       </p>
     </div>
   );
 }
-
-export default Header;

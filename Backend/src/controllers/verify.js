@@ -1,9 +1,18 @@
 import alpha from "../agent/alpha.js";
 import beta from "../agent/beta.js";
 import { findCachedVerdict } from "../utils/semanticCache.js";
+import buildResultPayload from "../utils/resultPayload.js";
 import History from "../models/History.js";
+import GuestResult from "../models/GuestResult.js";
 import Review from "../models/Review.js";
 import { getIsMongoConnected } from "../config/mongo.js";
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidGuestId(id) {
+  return typeof id === "string" && UUID_REGEX.test(id.trim());
+}
 
 // In-memory stats
 let totalRequests = 0;
@@ -24,19 +33,46 @@ export const getStats = (req, res) => {
   });
 };
 
-async function saveHistoryQuietly(userId, claim, resultData, cached, tookMs) {
+async function saveHistoryQuietly(userId, payload) {
   try {
     if (userId && getIsMongoConnected()) {
       await History.create({
         userId,
-        claim,
-        result: resultData,
-        cached: Boolean(cached),
-        tookMs: tookMs || 0,
+        query: payload.query,
+        claim: payload.data?.claim || payload.query,
+        result: payload.data,
+        cached: Boolean(payload.cached),
+        origin: payload.origin,
+        verifiedAt: payload.verifiedAt ? new Date(payload.verifiedAt) : null,
+        matchedClaim: payload.matchedClaim || null,
+        tookMs: payload.took_ms || 0,
       });
     }
   } catch (error) {
     console.warn("Failed to record history:", error.message);
+  }
+}
+
+async function saveGuestResultQuietly(guestId, payload) {
+  try {
+    if (guestId && getIsMongoConnected()) {
+      const count = await GuestResult.countDocuments({ guestId });
+      if (count < 5) {
+        await GuestResult.create({
+          guestId,
+          query: payload.query,
+          claim: payload.data?.claim || payload.query,
+          result: payload.data,
+          cached: Boolean(payload.cached),
+          origin: payload.origin,
+          verifiedAt: payload.verifiedAt ? new Date(payload.verifiedAt) : null,
+          matchedClaim: payload.matchedClaim || null,
+          tookMs: payload.took_ms || 0,
+        });
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to record guest result:", error.message);
   }
 }
 
@@ -182,20 +218,31 @@ export const verifyAlphaStream = async (req, res) => {
       // Refund quota on cache hit
       req.refundQuota?.();
 
-      sendEvent("result", {
-        ...cacheResult.data,
-        cached: true,
-        similarity: cacheResult.score,
-        took_ms,
+      const guestHeader = req.headers["x-guest-id"];
+      const validGuestId = isValidGuestId(guestHeader) ? guestHeader.trim() : null;
+
+      const resultPayload = buildResultPayload({
+        alphaResponse: cacheResult.data,
+        query,
+        cacheHit: cacheResult,
+        tookMs: took_ms,
+        guestRemaining:
+          req.guestRemaining !== undefined && !req.user?.id
+            ? req.guestRemaining
+            : undefined,
       });
+
+      sendEvent("result", resultPayload);
 
       console.log(`[${now()}] result sent (cached)`);
       cleanup();
       if (!res.writableEnded) res.end();
 
-      // Record history if user is logged in
+      // Record history for authenticated user or guest
       if (req.user?.id) {
-        saveHistoryQuietly(req.user.id, query, cacheResult.data?.data, true, took_ms);
+        saveHistoryQuietly(req.user.id, resultPayload);
+      } else if (validGuestId) {
+        saveGuestResultQuietly(validGuestId, resultPayload);
       }
       return;
     }
@@ -238,19 +285,31 @@ export const verifyAlphaStream = async (req, res) => {
     totalRequests++;
     totalFreshMs += took_ms;
 
-    sendEvent("result", {
-      ...alpha_response,
-      cached: false,
-      took_ms,
+    const guestHeader = req.headers["x-guest-id"];
+    const validGuestId = isValidGuestId(guestHeader) ? guestHeader.trim() : null;
+
+    const resultPayload = buildResultPayload({
+      alphaResponse: alpha_response,
+      query,
+      cacheHit: null,
+      tookMs: took_ms,
+      guestRemaining:
+        req.guestRemaining !== undefined && !req.user?.id
+          ? req.guestRemaining
+          : undefined,
     });
+
+    sendEvent("result", resultPayload);
     console.log(`[${now()}] result sent`);
 
     cleanup();
     if (!res.writableEnded) res.end();
 
-    // 3. Record history for authenticated user
+    // 3. Record history for authenticated user or guest
     if (req.user?.id) {
-      saveHistoryQuietly(req.user.id, query, alpha_response?.data, false, took_ms);
+      saveHistoryQuietly(req.user.id, resultPayload);
+    } else if (validGuestId) {
+      saveGuestResultQuietly(validGuestId, resultPayload);
     }
 
     // 4. Server-side beta save

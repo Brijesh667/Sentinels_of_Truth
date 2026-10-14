@@ -44,7 +44,9 @@ async function main() {
     "PINECONE_INDEX_NAME",
     "TAVILY_API_KEY",
     "MONGODB_URI",
-    "CLERK_SECRET_KEY",
+    "REDIS_URL",
+    "JWT_ACCESS_SECRET",
+    "GOOGLE_OAUTH_CLIENT_ID",
     "GEMINI_MODEL",
   ];
 

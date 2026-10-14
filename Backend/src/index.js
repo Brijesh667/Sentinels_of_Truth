@@ -6,10 +6,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 dotenv.config();
+
 import express from "express";
+import helmet from "helmet";
 import cors from "cors";
-import { clerkMiddleware } from "@clerk/express";
 import { connectMongo } from "./config/mongo.js";
+import { getRedisClient } from "./config/redis.js";
+import auth_route from "./routes/auth_route.js";
 import suggestion_route from "./routes/suggestion_route.js";
 import response_route from "./routes/response_route.js";
 import history_route from "./routes/history_route.js";
@@ -25,19 +28,23 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+app.use(helmet());
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Guest-Id"],
   })
 );
 app.use(express.json({ limit: "20kb" }));
-app.use(clerkMiddleware());
 app.use(globalLimiter);
 
-// Connect to MongoDB once at startup (graceful fallback if offline)
+// Connect to MongoDB and Redis at startup
 connectMongo();
+getRedisClient();
+
+// Auth routes
+app.use("/auth", auth_route);
 
 // Verification routes with optionalAuth -> validation -> verifyQuota
 app.use("/get/validate-stream", optionalAuth, validate(querySchema), verifyQuota);
