@@ -11,6 +11,10 @@
   color: transparent;
 }
 
+.masked-heading__line {
+  display: block;
+}
+
 .masked-heading__word {
   display: inline-block;
   white-space: pre;

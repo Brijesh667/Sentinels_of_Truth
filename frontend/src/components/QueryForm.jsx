@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useAuth } from "../auth/AuthContext";
+import { useAppAuth } from "../auth/useAppAuth";
 import axiosClient from "../utils/axiosClient";
 import { streamVerify } from "../utils/streamVerify";
 import Header from "./Header";
@@ -25,7 +25,7 @@ const STAGE_LABELS = {
 };
 
 export default function QueryForm() {
-  const { getAccessToken, isSignedIn, refreshSession, openAuthModal } = useAuth();
+  const { getAccessToken, isSignedIn, openSignIn } = useAppAuth();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -161,27 +161,9 @@ export default function QueryForm() {
     setShowSuggestions(false);
     setSuggestions([]);
 
-    let token = null;
-    if (isSignedIn) {
-      try {
-        token = await getAccessToken();
-      } catch (err) {
-        console.warn("Could not retrieve access token:", err);
-      }
-    }
-
     await streamVerify({
       query: query.trim(),
-      token,
       signal: controller.signal,
-      retryOnExpired: async () => {
-        try {
-          const res = await refreshSession();
-          return res?.accessToken || null;
-        } catch {
-          return null;
-        }
-      },
       onProgress: (newStage) => {
         setStage(newStage);
         const stageLabel =
@@ -208,13 +190,10 @@ export default function QueryForm() {
         }
         setResult(alphaResponse);
 
-        // Auto-open AuthModal after guest's last free check
+        // Auto-open after guest's last free check
         if (!isSignedIn && alphaResponse?.guestRemaining === 0) {
           setTimeout(() => {
-            openAuthModal({
-              subtitle:
-                "You've used your 2 free checks. Sign in to continue. Your results will be saved to your history.",
-            });
+            openSignIn();
           }, 800);
         }
 
@@ -228,10 +207,7 @@ export default function QueryForm() {
         setStage("");
 
         if (errorData?.code === "LOGIN_REQUIRED") {
-          openAuthModal({
-            subtitle:
-              "You've used your 2 free checks. Sign in to continue. Your results will be saved to your history.",
-          });
+          openSignIn();
           return;
         }
 

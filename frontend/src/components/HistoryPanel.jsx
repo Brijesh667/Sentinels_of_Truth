@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useAuth } from "../auth/AuthContext";
+import { useAppAuth } from "../auth/useAppAuth";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
 
@@ -43,7 +43,7 @@ function getRelativeTimeString(dateStr) {
 }
 
 export default function HistoryPanel({ onSelectHistory, refreshTrigger }) {
-  const { getAccessToken, isSignedIn, openAuthModal } = useAuth();
+  const { getAccessToken, isSignedIn, openSignIn } = useAppAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,12 +55,22 @@ export default function HistoryPanel({ onSelectHistory, refreshTrigger }) {
     setLoading(true);
     setError(null);
     try {
-      const token = await getAccessToken();
-      const res = await fetch(`${BACKEND_URL}/history`, {
+      let token = await getAccessToken();
+      let res = await fetch(`${BACKEND_URL}/history`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      if (res.status === 401) {
+        token = await getAccessToken({ skipCache: true });
+        if (token) {
+          res = await fetch(`${BACKEND_URL}/history`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+      }
       if (res.ok) {
         const data = await res.json();
         setHistory(Array.isArray(data) ? data : []);
@@ -77,16 +87,35 @@ export default function HistoryPanel({ onSelectHistory, refreshTrigger }) {
     fetchHistory();
   }, [fetchHistory, refreshTrigger]);
 
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetchHistory();
+    };
+    window.addEventListener("sot:history-updated", handleUpdate);
+    return () => window.removeEventListener("sot:history-updated", handleUpdate);
+  }, [fetchHistory]);
+
   const handleDelete = async (e, id) => {
     e.stopPropagation();
     try {
-      const token = await getAccessToken();
-      const res = await fetch(`${BACKEND_URL}/history/${id}`, {
+      let token = await getAccessToken();
+      let res = await fetch(`${BACKEND_URL}/history/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      if (res.status === 401) {
+        token = await getAccessToken({ skipCache: true });
+        if (token) {
+          res = await fetch(`${BACKEND_URL}/history/${id}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+      }
       if (res.ok) {
         setHistory((prev) => prev.filter((item) => item._id !== id));
       }
@@ -104,13 +133,24 @@ export default function HistoryPanel({ onSelectHistory, refreshTrigger }) {
       return;
     }
     try {
-      const token = await getAccessToken();
-      const res = await fetch(`${BACKEND_URL}/history`, {
+      let token = await getAccessToken();
+      let res = await fetch(`${BACKEND_URL}/history`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      if (res.status === 401) {
+        token = await getAccessToken({ skipCache: true });
+        if (token) {
+          res = await fetch(`${BACKEND_URL}/history`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+      }
       if (res.ok) {
         setHistory([]);
       }
@@ -146,7 +186,7 @@ export default function HistoryPanel({ onSelectHistory, refreshTrigger }) {
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => openAuthModal()}
+          onClick={() => openSignIn()}
           className="w-full text-xs min-h-[40px]"
         >
           Sign in to keep your history

@@ -1,4 +1,5 @@
-import { getStoredGuestId } from "../auth/AuthContext";
+import { getAuthToken } from "./authToken.js";
+import { getStoredGuestId } from "./guestId.js";
 
 const RAW_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 const BACKEND_URL = RAW_URL.replace(/\/+$/, "");
@@ -10,7 +11,6 @@ export async function streamVerify({
   onProgress,
   onResult,
   onError,
-  retryOnExpired,
 }) {
   let hasTerminalEvent = false;
 
@@ -19,8 +19,9 @@ export async function streamVerify({
       "Content-Type": "application/json",
     };
 
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+    const activeToken = token || (await getAuthToken());
+    if (activeToken) {
+      headers["Authorization"] = `Bearer ${activeToken}`;
     } else {
       const guestId = getStoredGuestId();
       if (guestId) {
@@ -43,18 +44,21 @@ export async function streamVerify({
         errorData = { error: `Request failed with status ${response.status}` };
       }
 
-      if (response.status === 401 && errorData?.code === "TOKEN_EXPIRED" && retryOnExpired) {
-        const newToken = await retryOnExpired();
-        if (newToken) {
-          return streamVerify({
-            query,
-            signal,
-            token: newToken,
-            onProgress,
-            onResult,
-            onError,
-            retryOnExpired: null, // do not retry recursively
-          });
+      if (response.status === 401 && !token) {
+        try {
+          const freshToken = await getAuthToken({ skipCache: true });
+          if (freshToken) {
+            return streamVerify({
+              query,
+              signal,
+              token: freshToken,
+              onProgress,
+              onResult,
+              onError,
+            });
+          }
+        } catch {
+          // ignore retry failure
         }
       }
 

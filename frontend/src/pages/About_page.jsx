@@ -17,8 +17,7 @@ const TECH_STACK = [
   "Pinecone",
   "Tavily",
   "MongoDB",
-  "Redis",
-  "JWT auth",
+  "Clerk",
 ];
 
 export default function About() {

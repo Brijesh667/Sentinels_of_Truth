@@ -14,11 +14,7 @@ const VerdictShowcase = lazy(() =>
   import("../components/landing/VerdictShowcase")
 );
 
-const TRUST_POINTS = [
-  "Cites its sources",
-  "Repeat claims answered instantly",
-  "Stop any check, any time",
-];
+
 
 const STEPS = [
   {
@@ -147,8 +143,7 @@ const TECH_BADGES = [
   "Pinecone",
   "Tavily",
   "MongoDB",
-  "Redis",
-  "JWT auth",
+  "Clerk",
 ];
 
 export default function LandingPage() {
@@ -169,15 +164,17 @@ export default function LandingPage() {
           aria-hidden="true"
         />
 
-        <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
+        <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
           {/* MaskedHeading Headline */}
           <div className="w-full mb-6">
             <MaskedHeading
               tag="h1"
-              text="Sift signal from noise. Verify truth with evidence in seconds."
+              text={`Sift signal from noise.\nVerify truth with evidence\nin seconds.`}
               src="/hero-mesh.svg"
               align="center"
               weight={800}
+              textScale={0.052}
+              lineHeight={1.12}
               brightness={isDark ? 1.15 : 0.85}
               saturation={isDark ? 1.25 : 1.45}
               parallax={18}
@@ -216,15 +213,6 @@ export default function LandingPage() {
             </a>
           </div>
 
-          {/* Trust points */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-fg-muted pt-2 border-t border-line/60">
-            {TRUST_POINTS.map((item, idx) => (
-              <span key={idx} className="inline-flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary flex-none" />
-                <span>{item}</span>
-              </span>
-            ))}
-          </div>
         </div>
       </section>
 

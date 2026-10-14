@@ -93,8 +93,8 @@ export const aboutData = {
       title: "Your account",
       subtitle: "Secure Database (MongoDB)",
       points: [
-        "Stores your account credentials and personal verification history.",
-        "Your private history is tied strictly to your user ID and visible only to you.",
+        "Sign-in and accounts are handled securely by Clerk. Our database stores only your personal verification history, never passwords.",
+        "Your private history is tied strictly to your Clerk user ID and visible only to you.",
         "You can inspect past results anytime, delete individual checks, or clear your entire history.",
       ],
     },

@@ -43,7 +43,16 @@ const MaskedHeading = ({
   const offsetRef = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
   const clipId = `mh-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const words = useMemo(() => String(text).split(/\s+/).filter(Boolean), [text]);
+  const lines = useMemo(() => {
+    return String(text)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }, [text]);
+
+  const words = useMemo(() => {
+    return lines.flatMap((line) => line.split(/\s+/).filter(Boolean));
+  }, [lines]);
 
   const settingsRef = useRef({});
   settingsRef.current = { fillScale, parallax, drift, brightness, saturation, grayscale, textScale };
@@ -70,7 +79,7 @@ const MaskedHeading = ({
     if (!root || !measure) return;
     const s = settingsRef.current;
 
-    root.style.fontSize = `${clamp(root.clientWidth * s.textScale, 20, 200).toFixed(1)}px`;
+    root.style.fontSize = `${clamp(root.clientWidth * s.textScale, 16, 200).toFixed(1)}px`;
 
     const cs = window.getComputedStyle(measure);
     for (let i = 0; i < wordRefs.current.length; i += 1) {
@@ -260,23 +269,40 @@ const MaskedHeading = ({
       {...rest}
     >
       <span ref={measureRef} className="masked-heading__measure">
-        {words.map((word, i) => (
-          <span
-            key={`${word}-${i}`}
-            ref={el => {
-              wordRefs.current[i] = el;
-            }}
-            className="masked-heading__word"
-          >
-            {word}
-            <i
-              ref={el => {
-                baseRefs.current[i] = el;
-              }}
-              className="masked-heading__baseline"
-            />
-          </span>
-        ))}
+        {(() => {
+          let wordIndex = 0;
+          return lines.map((line, lineIndex) => {
+            const lineWords = line.split(/\s+/).filter(Boolean);
+            return (
+              <span
+                key={lineIndex}
+                className="masked-heading__line"
+                style={{ display: 'block' }}
+              >
+                {lineWords.map((word) => {
+                  const i = wordIndex++;
+                  return (
+                    <span
+                      key={`${word}-${i}`}
+                      ref={el => {
+                        wordRefs.current[i] = el;
+                      }}
+                      className="masked-heading__word"
+                    >
+                      {word}
+                      <i
+                        ref={el => {
+                          baseRefs.current[i] = el;
+                        }}
+                        className="masked-heading__baseline"
+                      />
+                    </span>
+                  );
+                })}
+              </span>
+            );
+          });
+        })()}
       </span>
 
       <svg className="masked-heading__defs" aria-hidden="true" focusable="false">

@@ -10,9 +10,8 @@ dotenv.config();
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import { clerkMiddleware } from "@clerk/express";
 import { connectMongo } from "./config/mongo.js";
-import { getRedisClient } from "./config/redis.js";
-import auth_route from "./routes/auth_route.js";
 import suggestion_route from "./routes/suggestion_route.js";
 import response_route from "./routes/response_route.js";
 import history_route from "./routes/history_route.js";
@@ -38,13 +37,10 @@ app.use(
 );
 app.use(express.json({ limit: "20kb" }));
 app.use(globalLimiter);
+app.use(clerkMiddleware());
 
-// Connect to MongoDB and Redis at startup
+// Connect to MongoDB at startup
 connectMongo();
-getRedisClient();
-
-// Auth routes
-app.use("/auth", auth_route);
 
 // Verification routes with optionalAuth -> validation -> verifyQuota
 app.use("/get/validate-stream", optionalAuth, validate(querySchema), verifyQuota);
