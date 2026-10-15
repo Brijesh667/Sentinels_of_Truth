@@ -427,13 +427,8 @@ npm run build
 The production assets will be output to `Frontend/dist/`.
 
 ---
+Project Live link:
 
-## 👨‍💻 Author & Acknowledgements
-
-**Sentinels of Truth** is architected and maintained as an independent open-source initiative by **Brijesh Kumar**.
-
-- **GitHub**: [@Brijesh667](https://github.com/Brijesh667)
-- **Repository**: [https://github.com/Brijesh667/Sentinels_of_Truth](https://github.com/Brijesh667/Sentinels_of_Truth)
 - **Live Production URL**: [https://sentinels-of-truth-93j9.vercel.app](https://sentinels-of-truth-93j9.vercel.app)
 
 ---
