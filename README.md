@@ -11,7 +11,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose_9.1-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Clerk](https://img.shields.io/badge/Clerk-Authentication-6C47FF?logo=clerk&logoColor=white)](https://clerk.com/)
 
-**Sentinels of Truth** is a high-throughput, low-latency fact-verification engine engineered to dissect suspicious claims, viral rumors, and forwarded media at network speed. Beneath an editorial, calm newsroom interface lies an autonomous dual-agent architecture powered by Google Gemini, live multi-source web retrieval via Tavily, and a sub-50ms semantic vector cache via Pinecone.
+**Sentinels of Truth** is a high-throughput, low-latency fact-verification engine engineered to dissect suspicious claims, viral rumors, and forwarded media at network speed. Beneath an editorial, calm newsroom interface lies an autonomous dual-agent architecture powered by Google Gemini, live multi-source web retrieval via Tavily, and a sub-second semantic vector cache via Pinecone.
 
 [Live Demo](https://sentinels-of-truth-93j9.vercel.app) • [Architecture](#-system-architecture) • [Dual-Agent Design](#-why-dual-agent-architecture) • [Engineering Highlights](#-engineering-highlights--guardrails) • [Local Setup](#-local-development--setup-guide)
 
@@ -24,8 +24,8 @@ In modern social networks and private messaging apps (WhatsApp, Telegram, X), mi
 
 ### The Design Philosophy: Editorial Simplicity Over Technical Jargon
 Most AI applications overwhelm users with robotic chat interfaces, streaming markdown tables, and exposed token metrics. Sentinels of Truth intentionally rejects this paradigm:
-- **Surface Layer (Consumer Experience)**: Clean, typography-first newsroom aesthetic (*Newsreader serif* and *Inter sans*). Zero AI buzzwords, zero prompt engineering exposure. Every breakdown delivers a clear verdict (`Verified`, `Fake`, `Unclear`), confidence score, plain-language summary, and clickable primary citations.
-- **Deep Layer (System Engineering)**: A resilient, asynchronous pipeline built for production scale. Combines real-time Server-Sent Events (SSE), instant stream cancellation, strict temporal query guards, sub-50ms semantic vector retrieval, and an asynchronous audit agent that protects against vector database poisoning.
+- **Surface Layer (Consumer Experience)**: Clean, typography-first newsroom aesthetic (*Newsreader serif* and *Inter sans*). Zero AI buzzwords, zero prompt engineering exposure. Every breakdown delivers an editorial verdict (`True`, `False`, `Unclear`), confidence score, plain-language summary, and clickable primary citations.
+- **Deep Layer (System Engineering)**: A resilient, asynchronous pipeline built for production scale. Combines real-time Server-Sent Events (SSE), instant stream cancellation, strict temporal query guards, sub-second semantic vector retrieval (~0.5s vs 15-20s live web search), and an asynchronous audit agent that protects against vector database poisoning.
 
 ---
 
@@ -44,7 +44,7 @@ flowchart TD
     D -- "Static / Historical Claim" --> E["Pinecone Semantic Cache<br/>(gemini-embedding-2: 768-dim)"]
     
     E --> F{"Similarity Score >= 0.85 &<br/>Polarity Check Passed?"}
-    F -- "Cache Hit (<50ms)" --> G["Format Verdict Payload<br/>(Origin: verified_db)"]
+    F -- "Cache Hit (<1s)" --> G["Format Verdict Payload<br/>(Origin: verified_db)"]
     G --> L["Emit SSE Event: 'result'"]
     
     %% Live Verification Route
@@ -67,9 +67,9 @@ flowchart TD
 ```
 
 ### End-to-End Request Lifecycle Stages
-1. **Gateway Ingestion & Rate Verification**: Request passes through `helmet`, CORS validation, and a salted SHA-256 IP hash lookup to enforce anti-spam cooldowns (20s backend gap) and quota bounds.
+1. **Gateway Ingestion & Rate Verification**: Request passes through `helmet`, CORS validation, and a salted SHA-256 IP hash lookup to enforce anti-spam cooldowns (30s backend gap) and quota bounds.
 2. **Temporal Marker Triage**: The query is evaluated by `TIME_SENSITIVE_REGEX` (`today`, `now`, `current`, `latest`, `aaj`, `abhi`). If temporal markers are detected, the semantic cache is immediately bypassed to ensure rapidly evolving events are never answered with stale cached verdicts.
-3. **Semantic Vector Cache Retrieval**: For non-temporal queries, the claim is vectorized into a 768-dimensional space via `gemini-embedding-2` and compared against Pinecone vector records. If a cosine similarity match exceeds `0.85` and passes a strict polarity check (ensuring negated statements like *"Earth is round"* vs *"Earth is flat"* never match), the verified record is served in under 50ms.
+3. **Semantic Vector Cache Retrieval**: For non-temporal queries, the claim is vectorized into a 768-dimensional space via `gemini-embedding-2` and compared against Pinecone vector records. If a cosine similarity match exceeds `0.85` and passes a strict polarity check (ensuring negated statements like *"Earth is round"* vs *"Earth is flat"* never match), the verified record is served in sub-second latency (~0.5s).
 4. **Live Multi-Source Investigation (Alpha Agent)**: On a cache miss, the Alpha Agent initiates parallel web retrieval via the Tavily Search API. It extracts raw source documents, cross-examines evidence across reputable domains, computes an evidence-weighted confidence score, and structures the verdict into a strict Zod schema.
 5. **Real-Time SSE Streaming**: Progression updates (`checking_cache`, `searching`, `analyzing`) and the final structured payload stream over Server-Sent Events (SSE). The stream is bound to a client-side `AbortController`, enabling users to instantly halt backend execution without orphaned worker processes.
 6. **Asynchronous Quality Audit (Beta Agent)**: Upon successful Alpha execution, a decoupled worker process invokes the Beta Agent. It evaluates the new verdict against existing vector clusters to prevent vector cache poisoning, automatically routing contradictory findings into a MongoDB `Review` queue for human review.
@@ -171,7 +171,7 @@ To protect against automated scraping and DDoS attacks while remaining completel
 - **Global Server Limiters**: Express rate limiters enforce a maximum of 60 requests/minute per IP across standard routes and 40 requests/minute on the live suggestion endpoint.
 
 ### 3. Frontend Performance & Accessibility
-- **WCAG AA Compliant Theme Tokens**: Full semantic color system implemented via Tailwind CSS v4 variables supporting seamless system-aware dark and light modes.
+- **Accessible High-Contrast Theme Tokens**: Full semantic color system implemented via Tailwind CSS v4 variables supporting seamless system-aware dark and light modes.
 - **Fluid Typography**: Self-hosted variable fonts (`@fontsource-variable/newsreader` for editorial authority and `@fontsource-variable/inter` for high-legibility UI microcopy).
 - **Accessible Slide-Over Drawers (`Sheet`)**: Keyboard-navigable (`Escape` to dismiss), focus-trapped history drawer portal preventing background scroll bleed.
 - **Route-Level Code Splitting**: Heavy auxiliary views (`AboutPage`, `PrivacyPage`, `ResultPreview`) are dynamically loaded via `React.lazy()` and `React.Suspense`, keeping initial bundle size minimal (~170 kB gzipped).
@@ -198,7 +198,7 @@ To protect against automated scraping and DDoS attacks while remaining completel
 | **AI Reasoning** | **Google Gemini 2.5 Flash** | Multi-step evidence synthesis, verdict generation, and contradiction analysis |
 | **Vector Embeddings** | **Google Gemini Embedding 2** | 768-dimensional dense semantic vector representation |
 | **Live Web Search** | **Tavily Core Search API** | High-precision factual web retrieval with primary citation extraction |
-| **Vector Database** | **Pinecone Serverless 5.1** | Sub-50ms approximate nearest neighbor (ANN) semantic search |
+| **Vector Database** | **Pinecone Serverless 5.1** | Low-latency approximate nearest neighbor (ANN) semantic vector search |
 | **Document Database** | **MongoDB Atlas + Mongoose 9.1** | User check history, temporary guest results, and human review queue |
 
 ---
