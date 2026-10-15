@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import usePageTitle from "../utils/usePageTitle";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
@@ -6,6 +7,21 @@ import siteConfig from "../config/site";
 
 export default function AboutPage() {
   usePageTitle("About — Sentinels of Truth");
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace("#", "");
+      const el = document.getElementById(targetId);
+      if (el) {
+        // slight delay to allow layout to settle
+        const timeout = setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [location.hash]);
 
   return (
     <div className="w-full bg-bg text-fg py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
@@ -108,7 +124,111 @@ export default function AboutPage() {
           </Card>
         </section>
 
-        {/* Section 4: Creator Note */}
+        {/* Section 4: Usage Limits & Fair Use Policy */}
+        <section
+          id="usage-limits"
+          aria-labelledby="rate-limits-heading"
+          className="space-y-4 scroll-mt-20"
+        >
+          <div className="space-y-1">
+            <h2 id="rate-limits-heading" className="font-serif font-bold text-2xl text-fg">
+              Usage Limits & Rate Limiting
+            </h2>
+            <p className="text-xs sm:text-sm text-fg-muted">
+              Deep, multi-source fact-checking requires intensive AI synthesis and live web retrieval. To keep the service fast, reliable, and free from automated spam, we enforce fair usage limits:
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Guest Tier */}
+            <Card className="p-5 sm:p-6 border border-line bg-surface rounded-2xl flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-surface-2 text-fg-muted border border-line">
+                    Guest Users
+                  </span>
+                  <span className="text-xs text-fg-muted font-mono">Without login</span>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-bold font-serif text-fg">
+                    2 checks <span className="text-xs sm:text-sm font-sans font-normal text-fg-muted">/ day</span>
+                  </div>
+                  <p className="text-xs text-fg-muted mt-1">
+                    Free instant access without creating an account (tracked per IP address).
+                  </p>
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-fg-muted pt-2 border-t border-line/60">
+                  <li className="flex items-center gap-2">
+                    <span className="text-primary font-bold">✓</span>
+                    <span>2 full evidence-backed verifications daily</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-primary font-bold">✓</span>
+                    <span>Live search suggestions while typing</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-fg-muted/70">
+                    <span className="text-fg-muted/50">✕</span>
+                    <span>Search history is not saved</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-fg-muted/70">
+                    <span className="text-fg-muted/50">✕</span>
+                    <span>Login required after 2 free checks</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pt-2">
+                <p className="text-[11px] text-fg-muted bg-surface-2/60 p-2.5 rounded-xl border border-line/50">
+                  ⚡ <strong>Cooldown:</strong> 20s gap between queries to prevent rapid requests.
+                </p>
+              </div>
+            </Card>
+
+            {/* Registered User Tier */}
+            <Card className="p-5 sm:p-6 border border-primary/40 bg-primary/5 rounded-2xl flex flex-col justify-between space-y-4 relative overflow-hidden">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/15 text-primary border border-primary/25">
+                    Logged-in Users
+                  </span>
+                  <span className="text-xs text-primary font-medium">Free Account</span>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-bold font-serif text-fg">
+                    20 checks <span className="text-xs sm:text-sm font-sans font-normal text-fg-muted">/ day</span>
+                  </div>
+                  <p className="text-xs text-fg-muted mt-1">
+                    Full personal access and history tracking for signed-in members.
+                  </p>
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-fg-muted pt-2 border-t border-primary/15">
+                  <li className="flex items-center gap-2 text-fg">
+                    <span className="text-primary font-bold">✓</span>
+                    <span>20 comprehensive verifications per 24 hours</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-fg">
+                    <span className="text-primary font-bold">✓</span>
+                    <span>Persistent search & verification history</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-fg">
+                    <span className="text-primary font-bold">✓</span>
+                    <span>One-click history review and deletion</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-fg">
+                    <span className="text-primary font-bold">✓</span>
+                    <span>Daily quota automatically resets every 24 hours</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pt-2">
+                <p className="text-[11px] text-fg-muted bg-surface/70 p-2.5 rounded-xl border border-primary/20">
+                  ⚡ <strong>Cooldown:</strong> 20s gap between queries to prevent rapid requests.
+                </p>
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        {/* Section 5: Creator Note */}
         <section aria-labelledby="creator-heading" className="pt-6 border-t border-line space-y-3">
           <h2 id="creator-heading" className="font-serif font-bold text-xl text-fg">
             Creator note

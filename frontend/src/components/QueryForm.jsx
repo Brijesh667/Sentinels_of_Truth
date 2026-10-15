@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAppAuth } from "../auth/useAppAuth";
 import axiosClient from "../utils/axiosClient";
 import { streamVerify } from "../utils/streamVerify";
@@ -30,6 +30,7 @@ export default function QueryForm({
 } = {}) {
   const { isSignedIn, openSignIn } = useAppAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -50,6 +51,7 @@ export default function QueryForm({
   const textareaRef = useRef(null);
   const autoRunHandledRef = useRef(false);
   const coldStartTimerRef = useRef(null);
+  const stopTimerRef = useRef(null);
   const handleSubmitRef = useRef();
 
   // Auto-grow textarea
@@ -154,10 +156,19 @@ export default function QueryForm({
       if (coldStartTimerRef.current) {
         clearTimeout(coldStartTimerRef.current);
       }
+      if (stopTimerRef.current) {
+        clearTimeout(stopTimerRef.current);
+      }
     };
   }, []);
 
   const handleInputChange = (e) => {
+    if (stopTimerRef.current) {
+      clearTimeout(stopTimerRef.current);
+    }
+    if (isStopped) {
+      setIsStopped(false);
+    }
     const value = e.target.value;
     if (value.length <= 300) {
       setQuery(value);
@@ -168,6 +179,7 @@ export default function QueryForm({
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
+      if (cooldown > 0) return;
       handleSubmit();
     } else if (e.key === "Escape") {
       setShowSuggestions(false);
@@ -273,7 +285,28 @@ export default function QueryForm({
     setLoading(false);
     setIsSlowColdStart(false);
     setStage("");
+
+    // Restore the entered claim back into the input box
+    if (submittedQuery) {
+      setQuery(submittedQuery);
+      if (textareaRef.current) {
+        textareaRef.current.value = submittedQuery;
+        setTimeout(adjustTextareaHeight, 0);
+        textareaRef.current.focus();
+      }
+    }
+
+    // Set 20s countdown on verify button
+    setCooldown(20);
+
+    // Show stopped notice and auto-dismiss after 5 seconds
+    if (stopTimerRef.current) {
+      clearTimeout(stopTimerRef.current);
+    }
     setIsStopped(true);
+    stopTimerRef.current = setTimeout(() => {
+      setIsStopped(false);
+    }, 5000);
   };
 
   const handleSubmit = async (overrideQuery, options = {}) => {
@@ -282,6 +315,11 @@ export default function QueryForm({
     if (!textToSubmit || cooldown > 0 || loading || isDailyLimitReached) {
       return;
     }
+
+    if (stopTimerRef.current) {
+      clearTimeout(stopTimerRef.current);
+    }
+    setIsStopped(false);
 
     const skipCache = Boolean(options?.skipCache);
 
@@ -342,6 +380,9 @@ export default function QueryForm({
         setIsSlowColdStart(false);
         setStage("");
 
+        // Start 20-second countdown on verify button
+        setCooldown(20);
+
         if (alphaResponse?.success === false) {
           setResult({
             error: alphaResponse.error || "Verification failed. Please try again.",
@@ -368,6 +409,9 @@ export default function QueryForm({
         setLoading(false);
         setIsSlowColdStart(false);
         setStage("");
+
+        // Start 20-second countdown (or retryAfter if sent)
+        setCooldown(errorData?.retryAfter || errorData?.retryAfterSeconds || 20);
 
         if (errorData?.code === "LOGIN_REQUIRED") {
           openSignIn();
@@ -402,7 +446,7 @@ export default function QueryForm({
 
   // Autocomplete suggestion fetcher
   useEffect(() => {
-    if (!query || query.trim().length < 2) {
+    if (loading || !query || query.trim().length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -445,7 +489,7 @@ export default function QueryForm({
     }, 450);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, loading]);
 
   // Click outside to dismiss suggestions
   useEffect(() => {
@@ -576,13 +620,26 @@ export default function QueryForm({
                 <span>Stop</span>
               </Button>
             ) : cooldown > 0 ? (
-              <span className="inline-flex items-center px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-warning min-h-[40px]">
-                Wait {cooldown}s
-              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate("/about#usage-limits")}
+                className="min-h-[40px] px-4 font-semibold text-xs sm:text-sm border-line bg-surface-2 text-warning hover:bg-surface-3 hover:border-warning/50 cursor-pointer transition-colors"
+                title="Cooldown active. Click to view Usage Limits & Rate Limiting"
+                aria-label={`Please wait ${cooldown} seconds. Click to view Usage Limits & Rate Limiting.`}
+              >
+                <span>Wait {cooldown}s</span>
+              </Button>
             ) : isDailyLimitReached ? (
-              <span className="inline-flex items-center px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-danger min-h-[40px]">
-                Daily limit reached
-              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate("/about#usage-limits")}
+                className="inline-flex items-center px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-danger min-h-[40px] hover:border-danger/40 cursor-pointer transition-colors"
+                title="Daily limit reached. Click to view Usage Limits & Rate Limiting"
+              >
+                <span>Daily limit reached</span>
+              </Button>
             ) : (
               <Button
                 variant="primary"
@@ -601,7 +658,7 @@ export default function QueryForm({
         </div>
 
         {/* Suggestion Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
+        {!loading && showSuggestions && suggestions.length > 0 && (
           <SuggestionDropdown
             suggestions={suggestions}
             onSelect={handleSuggestionClick}
@@ -629,30 +686,45 @@ export default function QueryForm({
         </div>
       )}
 
-      {/* 3. Real-Time Verification Progress (ThoughtLine) */}
-      {loading && (
-        <div className="p-6 bg-surface border border-line rounded-2xl shadow-xs space-y-3 animate-in fade-in duration-300">
-          <ThoughtLine
-            working={true}
-            steps={steps}
-            label="Verifying"
-            doneLabel="Verified in"
-            glyph="sparkle"
-            fontSize={15}
-            breathPeriod={1.6}
-            breathDepth={0.45}
-            settleDuration={300}
-            settleBlur={2}
-            collapsible
-            collapseOnSettle
-            showTimer
-          />
-
-          {isSlowColdStart && (
-            <p className="text-xs text-fg-muted/80 italic pt-2 border-t border-line/60">
-              Connecting to verification service. The initial check can take a moment...
-            </p>
+      {/* 3. Real-Time Verification Progress (Claim & ThoughtLine) */}
+      {loading && !result && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Claim display during verification */}
+          {submittedQuery && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+              <span className="text-[11px] sm:text-xs font-semibold text-fg-muted uppercase tracking-wider block mb-1">
+                You asked:
+              </span>
+              <p className="font-serif text-lg sm:text-xl font-medium text-fg leading-snug">
+                {submittedQuery}
+              </p>
+            </div>
           )}
+
+          {/* Thinking / ThoughtLine */}
+          <div className="p-6 bg-surface border border-line rounded-2xl shadow-xs space-y-3">
+            <ThoughtLine
+              working={true}
+              steps={steps}
+              label="Verifying"
+              doneLabel="Verified in"
+              glyph="sparkle"
+              fontSize={15}
+              breathPeriod={1.6}
+              breathDepth={0.45}
+              settleDuration={300}
+              settleBlur={2}
+              collapsible
+              collapseOnSettle
+              showTimer
+            />
+
+            {isSlowColdStart && (
+              <p className="text-xs text-fg-muted/80 italic pt-2 border-t border-line/60">
+                Connecting to verification service. The initial check can take a moment...
+              </p>
+            )}
+          </div>
         </div>
       )}
 

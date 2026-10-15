@@ -57,6 +57,8 @@ export default function HistorySheet({
   const [error, setError] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [clearingAll, setClearingAll] = useState(false);
 
   const fetchHistory = useCallback(async () => {
     if (!isSignedIn) return;
@@ -97,6 +99,7 @@ export default function HistorySheet({
     } else {
       setConfirmDeleteId(null);
       setDeletingId(null);
+      setConfirmClearAll(false);
     }
   }, [isOpen, fetchHistory, refreshTrigger]);
 
@@ -133,14 +136,8 @@ export default function HistorySheet({
     }
   };
 
-  const handleClearAll = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to clear your entire verification history?"
-      )
-    ) {
-      return;
-    }
+  const executeClearAll = async () => {
+    setClearingAll(true);
     try {
       let token = await getAccessToken();
       let res = await fetch(`${BACKEND_URL}/history`, {
@@ -162,9 +159,12 @@ export default function HistorySheet({
       }
       if (res.ok) {
         setHistory([]);
+        setConfirmClearAll(false);
       }
     } catch (err) {
       console.error("Failed to clear history:", err);
+    } finally {
+      setClearingAll(false);
     }
   };
 
@@ -193,18 +193,53 @@ export default function HistorySheet({
     >
       <div className="flex flex-col h-full space-y-4">
         {history.length > 0 && (
-          <div className="flex items-center justify-between pb-2 border-b border-line">
-            <span className="text-xs text-fg-muted font-medium">
-              Recent checks
-            </span>
-            <button
-              type="button"
-              onClick={handleClearAll}
-              disabled={loading}
-              className="text-xs text-danger hover:underline font-medium cursor-pointer min-h-[32px] px-1"
-            >
-              Clear all
-            </button>
+          <div className="relative pb-2 border-b border-line">
+            {confirmClearAll ? (
+              <div className="p-2.5 rounded-xl bg-danger/10 border border-danger/30 flex items-center justify-between gap-2 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-danger/20 text-danger flex items-center justify-center shrink-0">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-semibold text-fg">
+                    Do you want to clear history?
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearAll(false)}
+                    className="px-2.5 py-1 text-xs rounded-lg border border-line bg-surface hover:bg-surface-2 text-fg font-medium transition cursor-pointer min-h-[30px]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={clearingAll}
+                    onClick={executeClearAll}
+                    className="px-3 py-1 text-xs rounded-lg bg-danger text-white hover:bg-danger/90 font-medium transition cursor-pointer flex items-center gap-1 min-h-[30px]"
+                  >
+                    {clearingAll ? "Clearing..." : "Yes"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-fg-muted font-medium">
+                  Recent checks
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setConfirmClearAll(true)}
+                  disabled={loading}
+                  className="text-xs text-danger hover:underline font-medium cursor-pointer min-h-[32px] px-1"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
           </div>
         )}
 
