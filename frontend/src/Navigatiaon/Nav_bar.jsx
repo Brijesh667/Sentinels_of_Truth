@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { UserButton } from "@clerk/clerk-react";
 import { useAppAuth } from "../auth/useAppAuth";
@@ -11,9 +11,18 @@ import sentinelsLogo from "../assets/sentinels_logo.png";
 export default function Navbar() {
   const { isSignedIn, isLoaded, openSignIn } = useAppAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isLanding = location.pathname === "/";
+
+  const handleOpenHistory = () => {
+    if (location.pathname !== "/") {
+      navigate("/?openHistory=1");
+    } else {
+      window.dispatchEvent(new CustomEvent("sot:open-history"));
+    }
+  };
 
   const handleHowItWorksClick = (e) => {
     if (isLanding) {
@@ -129,7 +138,7 @@ export default function Navbar() {
               size="sm"
               onClick={() =>
                 openSignIn({
-                  fallbackRedirectUrl: location.pathname || "/app",
+                  fallbackRedirectUrl: location.pathname || "/",
                 })
               }
               className="font-medium min-h-[40px]"
@@ -164,12 +173,30 @@ export default function Navbar() {
       >
         <nav className="flex flex-col gap-2 pt-2">
           <Link
-            to="/app"
-            onClick={() => setMobileMenuOpen(false)}
+            to="/"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             className="flex items-center gap-2 px-3.5 py-3 rounded-xl text-sm font-semibold text-primary bg-primary/10 min-h-[44px]"
           >
             <span>Check a claim</span>
           </Link>
+          {isSignedIn && (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleOpenHistory();
+              }}
+              className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl text-sm font-medium text-fg hover:bg-surface-2 transition text-left cursor-pointer min-h-[44px]"
+            >
+              <svg className="w-4 h-4 text-fg-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>My History</span>
+            </button>
+          )}
           <a
             href={isLanding ? "#how-it-works" : "/#how-it-works"}
             onClick={(e) => {

@@ -1,8 +1,7 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import LandingPage from "./pages/Landing_page";
-import Home_page from "./pages/Home_page";
 import NotFoundPage from "./pages/NotFound_page";
 
 const About = React.lazy(() => import("./pages/About_page"));
@@ -17,7 +16,7 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/app" element={<Home_page />} />
+        <Route path="/app" element={<Navigate to="/" replace />} />
         <Route
           path="/about"
           element={

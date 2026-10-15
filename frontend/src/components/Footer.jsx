@@ -1,7 +1,26 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import siteConfig from "../config/site";
 
 export default function Footer() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleVerifyClick = (e) => {
+    e.preventDefault();
+    if (location.pathname === "/") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      const input = document.querySelector("#claim-input");
+      if (input) input.focus();
+    } else {
+      navigate("/");
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        const input = document.querySelector("#claim-input");
+        if (input) input.focus();
+      }, 100);
+    }
+  };
+
   return (
     <footer className="w-full bg-surface border-t border-line transition-colors duration-200 mt-auto">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -16,10 +35,11 @@ export default function Footer() {
           {/* Center: Essential links */}
           <nav className="flex items-center justify-center gap-6 text-sm" aria-label="Footer links">
             <Link
-              to="/app"
+              to="/"
+              onClick={handleVerifyClick}
               className="text-fg-muted hover:text-fg transition-colors"
             >
-              Check a claim
+              Verify a claim
             </Link>
             <Link
               to="/about"

@@ -415,31 +415,6 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-
-      {/* 7. CLOSING BANNER STRIP */}
-      <section
-        aria-label="Call to action"
-        className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center"
-      >
-        <div className="p-8 sm:p-12 rounded-3xl bg-surface border border-line text-center space-y-4 shadow-xs">
-          <h2 className="font-serif font-bold text-2xl sm:text-3xl text-fg">
-            Got a claim you want to check?
-          </h2>
-          <p className="text-sm sm:text-base text-fg-muted max-w-md mx-auto leading-relaxed">
-            Verify any forwarded message or headline right now. No signup or credit card required.
-          </p>
-          <div className="pt-2">
-            <Button
-              variant="primary"
-              size="lg"
-              to="/app"
-              className="min-h-[48px] px-8 text-base font-semibold"
-            >
-              Verify a claim now
-            </Button>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

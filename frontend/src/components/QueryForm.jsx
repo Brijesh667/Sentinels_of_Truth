@@ -115,6 +115,27 @@ export default function QueryForm({
     }
   }, [location.state, location.search, adjustTextareaHeight]);
 
+  // Listen for open-history event from Navbar or URL
+  useEffect(() => {
+    const handleOpenHistory = () => {
+      setHistorySheetOpen(true);
+    };
+    window.addEventListener("sot:open-history", handleOpenHistory);
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("openHistory") === "1") {
+        setHistorySheetOpen(true);
+        params.delete("openHistory");
+        const newSearch = params.toString();
+        const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : "");
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch {}
+
+    return () => window.removeEventListener("sot:open-history", handleOpenHistory);
+  }, []);
+
   // Countdown timer for GAP rate limit
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -443,13 +464,31 @@ export default function QueryForm({
     <div className={`max-w-2xl sm:max-w-3xl mx-auto space-y-6 ${isLanding ? "px-0 py-0" : "px-4 py-8"}`}>
       {/* 1. Header & Top Action Bar */}
       {isLanding ? (
-        <div className="text-center max-w-3xl mx-auto space-y-3 pb-2">
-          <h1 className="font-serif font-semibold text-3xl sm:text-5xl md:text-6xl text-fg tracking-tight leading-[1.15]">
-            {title || "Is it true? Check before you share."}
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-fg-muted max-w-xl mx-auto leading-relaxed font-normal">
-            {subtitle || "Paste a claim, news headline, or WhatsApp forward. Get a clear verdict, the sources behind it, and how sure we are."}
-          </p>
+        <div className="max-w-3xl mx-auto pb-2 relative">
+          {isSignedIn && (
+            <div className="flex justify-end mb-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setHistorySheetOpen(true)}
+                className="gap-2 text-xs sm:text-sm font-medium min-h-[38px] px-3.5 shadow-2xs hover:bg-surface-2 transition cursor-pointer"
+                aria-label="Open verification history"
+              >
+                <svg className="w-4 h-4 text-fg-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>History</span>
+              </Button>
+            </div>
+          )}
+          <div className="text-center space-y-3">
+            <h1 className="font-serif font-semibold text-3xl sm:text-5xl md:text-6xl text-fg tracking-tight leading-[1.15]">
+              {title || "Is it true? Check before you share."}
+            </h1>
+            <p className="text-base sm:text-lg md:text-xl text-fg-muted max-w-xl mx-auto leading-relaxed font-normal">
+              {subtitle || "Paste a claim, news headline, or WhatsApp forward. Get a clear verdict, the sources behind it, and how sure we are."}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-line">
@@ -462,29 +501,22 @@ export default function QueryForm({
             </p>
           </div>
 
-          <div className="shrink-0 flex items-center">
-            {isSignedIn ? (
+          {isSignedIn && (
+            <div className="shrink-0 flex items-center">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setHistorySheetOpen(true)}
                 className="gap-2 text-xs sm:text-sm font-medium min-h-[40px] px-3.5"
+                aria-label="Open verification history"
               >
                 <svg className="w-4 h-4 text-fg-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>History</span>
               </Button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => openSignIn()}
-                className="text-xs text-primary hover:underline font-medium cursor-pointer"
-              >
-                
-              </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -513,11 +545,6 @@ export default function QueryForm({
         {/* Input Footer: shortcut hint, counter & buttons */}
         <div className="flex items-center justify-between pt-3 mt-2 border-t border-line/60 text-xs gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            {isLanding && (
-              <span className="text-xs text-fg-muted hidden sm:inline">
-                No account needed to try.
-              </span>
-            )}
             <span className="text-fg-muted hidden sm:inline">
               Ctrl + Enter to check
             </span>

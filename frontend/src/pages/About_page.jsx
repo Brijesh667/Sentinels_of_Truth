@@ -19,7 +19,7 @@ export default function AboutPage() {
             Public evidence-backed verification for doubtful claims, rumors, and forwards.
           </p>
           <div className="pt-2">
-            <Button variant="primary" size="sm" to="/app" className="min-h-[40px] px-6 font-semibold">
+            <Button variant="primary" size="sm" to="/" className="min-h-[40px] px-6 font-semibold">
               Check a claim
             </Button>
           </div>
@@ -114,8 +114,7 @@ export default function AboutPage() {
             Creator note
           </h2>
           <p className="text-xs sm:text-sm text-fg-muted leading-relaxed">
-            Sentinels of Truth is built and maintained by{" "}
-            <span className="font-medium text-fg">{siteConfig.author}</span>. The goal is to provide a public utility for thoughtful media literacy without advertisements, corporate spin, or sensationalism.
+            Sentinels of Truth is built and maintained as an independent open-source project. The goal is to provide a public utility for thoughtful media literacy without advertisements, corporate spin, or sensationalism.
           </p>
           {siteConfig.github && (
             <p className="text-xs text-fg-muted">
