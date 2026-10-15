@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import usePageTitle from "../utils/usePageTitle";
 import QueryForm from "../components/QueryForm";
 import Button from "../components/ui/Button";
@@ -60,6 +62,19 @@ const FAQS = [
 
 export default function LandingPage() {
   usePageTitle("Sentinels of Truth — Check before you share");
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.scrollTo === "how-it-works") {
+      window.history.replaceState(null, "", "/how-it-works");
+      setTimeout(() => {
+        const el = document.getElementById("how-it-works");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
+  }, [location.state]);
 
   const handleCardClick = (text) => {
     window.dispatchEvent(new CustomEvent("sot:set-claim", { detail: text }));

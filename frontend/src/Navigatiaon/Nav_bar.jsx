@@ -25,8 +25,18 @@ export default function Navbar() {
   };
 
   const handleHowItWorksClick = (e) => {
-    if (isLanding) {
-      e.preventDefault();
+    e.preventDefault();
+    window.history.pushState(null, "", "/how-it-works");
+    if (location.pathname !== "/") {
+      navigate("/");
+      setTimeout(() => {
+        window.history.pushState(null, "", "/how-it-works");
+        const el = document.getElementById("how-it-works");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    } else {
       const el = document.getElementById("how-it-works");
       if (el) {
         el.scrollIntoView({ behavior: "smooth" });
@@ -70,17 +80,17 @@ export default function Navbar() {
           aria-label="Main Navigation"
         >
           <motion.a
-            href={isLanding ? "#how-it-works" : "/#how-it-works"}
+            href="/how-it-works"
             onClick={handleHowItWorksClick}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className={`relative px-4 py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-full cursor-pointer select-none ${
-              isLanding && location.hash === "#how-it-works"
+              window.location.pathname === "/how-it-works" || location.hash === "#how-it-works"
                 ? "text-fg font-semibold"
                 : "text-fg-muted hover:text-fg"
             }`}
           >
-            {isLanding && location.hash === "#how-it-works" && (
+            {(window.location.pathname === "/how-it-works" || location.hash === "#how-it-works") && (
               <motion.span
                 layoutId="navbar-pill"
                 className="absolute inset-0 rounded-full bg-surface border border-line shadow-2xs -z-10"
@@ -198,7 +208,7 @@ export default function Navbar() {
             </button>
           )}
           <a
-            href={isLanding ? "#how-it-works" : "/#how-it-works"}
+            href="/how-it-works"
             onClick={(e) => {
               setMobileMenuOpen(false);
               handleHowItWorksClick(e);

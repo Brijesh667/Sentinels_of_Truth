@@ -1,7 +1,13 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, Navigate } from "react-router-dom";
 import usePageTitle from "../utils/usePageTitle";
 
 export default function NotFoundPage() {
+  const location = useLocation();
+
+  if (location.pathname === "/how-it-works") {
+    return <Navigate to="/" replace state={{ scrollTo: "how-it-works" }} />;
+  }
+
   usePageTitle("Page not found — Sentinels of Truth");
 
   return (
