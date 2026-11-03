@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import LandingPage from "./pages/Landing_page";
 import NotFoundPage from "./pages/NotFound_page";
+import axios from "axios";
+import { useEffect } from "react";
 
 const About = React.lazy(() => import("./pages/About_page"));
 const Privacy = React.lazy(() => import("./pages/Privacy_page"));
@@ -12,6 +14,10 @@ const DevResultPreview = import.meta.env.DEV
   : null;
 
 function App() {
+  useEffect(() => {
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/health`).catch(() => {});
+  }, []);
+
   return (
     <Routes>
       <Route element={<Layout />}>

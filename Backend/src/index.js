@@ -46,7 +46,10 @@ connectMongo();
 app.use("/get/validate-stream", optionalAuth, validate(querySchema), verifyQuota);
 app.use("/get/validate", optionalAuth, validate(querySchema), verifyQuota);
 app.use("/get", response_route);
-
+app.get("/health", (req, res) => {
+  console.log("Health ping aaya:", new Date().toLocaleTimeString());
+  res.sendStatus(200);
+});
 // History routes (requireAuth inside router)
 app.use("/history", history_route);
 

@@ -27,6 +27,10 @@
   --color-warning-fg: #b45309;
   --color-ring: #1d4ed8;
   --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.08);
+
+  /* Spotlight Card Glow (Light mode) */
+  --glow-color: rgba(3, 105, 161, 0.12);
+  --glow-border: rgba(3, 105, 161, 0.5);
 }
 
 .dark {
@@ -51,6 +55,10 @@
   --color-warning-fg: #fbbf24;
   --color-ring: #6b9dff;
   --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.4);
+
+  /* Spotlight Card Glow (Dark mode) */
+  --glow-color: rgba(125, 249, 255, 0.15);
+  --glow-border: rgba(125, 249, 255, 0.6);
 }
 
 @theme inline {
@@ -103,6 +111,69 @@ textarea:focus-visible {
   box-shadow: none !important;
 }
 
+/* Spotlight Card Glow */
+.glow-card {
+  position: relative;
+  isolation: isolate;
+  --x: -1000px;
+  --y: -1000px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Inner radial spotlight glow */
+  .glow-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      400px circle at var(--x) var(--y),
+      var(--glow-color),
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* 1px Border spotlight ring */
+  .glow-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: radial-gradient(
+      400px circle at var(--x) var(--y),
+      var(--glow-border),
+      transparent 60%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .glow-card:hover::before,
+  .glow-card:hover::after {
+    opacity: 1;
+  }
+
+  /* Ensure card contents remain above the glow pseudo-elements */
+  .glow-card > * {
+    z-index: 2;
+  }
+
+  .glow-card > *:not([class*="absolute"]) {
+    position: relative;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -111,5 +182,10 @@ textarea:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .glow-card::before,
+  .glow-card::after {
+    display: none !important;
   }
 }

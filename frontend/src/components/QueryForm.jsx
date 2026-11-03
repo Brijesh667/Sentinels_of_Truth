@@ -8,14 +8,7 @@ import ResponseCard from "./ResponseCard";
 import HistorySheet from "./HistorySheet";
 import ThoughtLine from "./reactbits/ThoughtLine";
 import Button from "./ui/Button";
-import Chip from "./ui/Chip";
-
-const EXAMPLE_CHIPS = [
-  "Is Earth flat?",
-  "Do vaccines cause autism?",
-  "Do we use only 10% of our brain?",
-  "Is the Taj Mahal in Agra?",
-];
+import Card, { GlowCard } from "./ui/Card";
 
 const STAGE_LABELS = {
   checking_cache: "Checking verified records...",
@@ -183,14 +176,6 @@ export default function QueryForm({
       handleSubmit();
     } else if (e.key === "Escape") {
       setShowSuggestions(false);
-    }
-  };
-
-  const handleChipClick = (chip) => {
-    setQuery(chip);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      setTimeout(adjustTextareaHeight, 0);
     }
   };
 
@@ -502,8 +487,6 @@ export default function QueryForm({
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const showChips = !query.trim() && !result && !loading && !isStopped;
-
   return (
     <div className={`max-w-2xl sm:max-w-3xl mx-auto space-y-6 ${isLanding ? "px-0 py-0" : "px-4 py-8"}`}>
       {/* 1. Header & Top Action Bar */}
@@ -565,7 +548,7 @@ export default function QueryForm({
       )}
 
       {/* 2. Input Box */}
-      <div className="relative z-10 suggestion-container bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs focus-within:border-fg-muted/40 focus-within:ring-0 focus-within:outline-none">
+      <GlowCard className="relative z-10 suggestion-container bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs focus-within:border-fg-muted/40 focus-within:ring-0 focus-within:outline-none">
         <label htmlFor="claim-input" className="sr-only">
           Claim or statement to verify
         </label>
@@ -575,11 +558,7 @@ export default function QueryForm({
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder={
-            isLanding
-              ? "e.g. Does drinking hot water cure COVID-19? or paste any forwarded rumor..."
-              : "Is it true that...?"
-          }
+          placeholder="e.g. Is the Great Wall of China visible from space?"
           rows={3}
           maxLength={300}
           className="w-full bg-transparent text-fg outline-none focus:outline-none focus:ring-0 focus-visible:outline-none text-base sm:text-lg placeholder:text-fg-muted/70 caret-primary resize-none leading-relaxed"
@@ -666,43 +645,25 @@ export default function QueryForm({
             visible={showSuggestions}
           />
         )}
-      </div>
-
-      {/* Quick Sample Chips (When idle) */}
-      {showChips && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-fg-muted font-medium mr-1">
-            Try one:
-          </span>
-          {EXAMPLE_CHIPS.map((chipText) => (
-            <Chip
-              key={chipText}
-              onClick={() => handleChipClick(chipText)}
-              className="text-xs sm:text-sm"
-            >
-              {chipText}
-            </Chip>
-          ))}
-        </div>
-      )}
+      </GlowCard>
 
       {/* 3. Real-Time Verification Progress (Claim & ThoughtLine) */}
       {loading && !result && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Claim display during verification */}
           {submittedQuery && (
-            <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-xs">
+            <Card className="p-4 sm:p-5">
               <span className="text-[11px] sm:text-xs font-semibold text-fg-muted uppercase tracking-wider block mb-1">
                 You asked:
               </span>
               <p className="font-serif text-lg sm:text-xl font-medium text-fg leading-snug">
                 {submittedQuery}
               </p>
-            </div>
+            </Card>
           )}
 
           {/* Thinking / ThoughtLine */}
-          <div className="p-6 bg-surface border border-line rounded-2xl shadow-xs space-y-3">
+          <Card className="p-6 space-y-3">
             <ThoughtLine
               working={true}
               steps={steps}
@@ -724,7 +685,7 @@ export default function QueryForm({
                 Connecting to verification service. The initial check can take a moment...
               </p>
             )}
-          </div>
+          </Card>
         </div>
       )}
 

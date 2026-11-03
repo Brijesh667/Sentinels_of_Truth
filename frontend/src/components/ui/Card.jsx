@@ -1,15 +1,26 @@
-export default function Card({
-  children,
-  className = "",
-  as: Component = "div",
-  ...rest
-}) {
+import { forwardRef } from "react";
+import GlowCard from "./GlowCard";
+
+const Card = forwardRef(function Card(
+  {
+    children,
+    className = "",
+    as: Component = "div",
+    ...rest
+  },
+  ref
+) {
   return (
-    <Component
+    <GlowCard
+      ref={ref}
+      as={Component}
       className={`bg-surface border border-line rounded-2xl shadow-xs transition-colors duration-200 ${className}`}
       {...rest}
     >
       {children}
-    </Component>
+    </GlowCard>
   );
-}
+});
+
+export default Card;
+export { GlowCard };
