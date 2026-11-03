@@ -16,6 +16,63 @@ const STAGE_LABELS = {
   analyzing: "Weighing the evidence...",
 };
 
+function TypewriterSubtext({ text }) {
+  const isReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const [displayedCount, setDisplayedCount] = useState(() =>
+    isReducedMotion ? text.length : 0
+  );
+  const [isFinished, setIsFinished] = useState(() => Boolean(isReducedMotion));
+
+  useEffect(() => {
+    if (isReducedMotion) {
+      return;
+    }
+
+    let intervalId = null;
+    // Start typing right after headline animation finishes (~700ms)
+    const startDelay = setTimeout(() => {
+      let index = 0;
+      intervalId = setInterval(() => {
+        index += 1;
+        setDisplayedCount(index);
+        if (index >= text.length) {
+          clearInterval(intervalId);
+          setIsFinished(true);
+        }
+      }, 25);
+    }, 700);
+
+    return () => {
+      clearTimeout(startDelay);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [text, isReducedMotion]);
+
+  const displayedText = text.slice(0, displayedCount);
+
+  return (
+    <p
+      className="relative text-base sm:text-lg md:text-xl text-fg-muted max-w-xl mx-auto leading-relaxed font-normal min-h-[3.25rem] sm:min-h-[3.5rem] md:min-h-[3.75rem]"
+      aria-label={text}
+    >
+      {/* Invisible placeholder reserving exact layout height & width to guarantee zero CLS */}
+      <span className="invisible select-none block" aria-hidden="true">
+        {text}
+      </span>
+      {/* Visible typewriter text overlaid exactly */}
+      <span className="absolute inset-0 select-text" aria-hidden="true">
+        {displayedText}
+        {!isFinished && (
+          <span className="inline-block w-[1.5px] h-[1em] ml-0.5 align-middle bg-primary animate-pulse" />
+        )}
+      </span>
+    </p>
+  );
+}
+
 export default function QueryForm({
   isLanding = false,
   title,
@@ -39,6 +96,7 @@ export default function QueryForm({
   const [historyTrigger, setHistoryTrigger] = useState(0);
   const [historySheetOpen, setHistorySheetOpen] = useState(false);
   const [isSlowColdStart, setIsSlowColdStart] = useState(false);
+  const [ripples, setRipples] = useState([]);
 
   const abortControllerRef = useRef(null);
   const textareaRef = useRef(null);
@@ -429,6 +487,22 @@ export default function QueryForm({
     });
   };
 
+  const handleVerifyClick = (e) => {
+    if (!query.trim() || loading || cooldown > 0 || isDailyLimitReached) return;
+    const button = e.currentTarget;
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const newRipple = { id: Date.now() + Math.random(), x, y };
+      setRipples((prev) => [...prev, newRipple]);
+      setTimeout(() => {
+        setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
+      }, 500);
+    }
+    handleSubmit();
+  };
+
   // Autocomplete suggestion fetcher
   useEffect(() => {
     if (loading || !query || query.trim().length < 2) {
@@ -492,29 +566,16 @@ export default function QueryForm({
       {/* 1. Header & Top Action Bar */}
       {isLanding ? (
         <div className="max-w-3xl mx-auto pb-2 relative">
-          {isSignedIn && (
-            <div className="flex justify-end mb-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setHistorySheetOpen(true)}
-                className="gap-2 text-xs sm:text-sm font-medium min-h-[38px] px-3.5 shadow-2xs hover:bg-surface-2 transition cursor-pointer"
-                aria-label="Open verification history"
-              >
-                <svg className="w-4 h-4 text-fg-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>History</span>
-              </Button>
-            </div>
-          )}
           <div className="text-center space-y-3">
-            <h1 className="font-serif font-semibold text-3xl sm:text-5xl md:text-6xl text-fg tracking-tight leading-[1.15]">
-              {title || "Is it true? Check before you share."}
+            <h1 className="hero-headline-entrance font-serif font-semibold text-3xl sm:text-5xl md:text-6xl text-fg tracking-tight leading-[1.15] min-h-[2.5rem] sm:min-h-[3.75rem] md:min-h-[4.5rem]">
+              {title || "Is it true? Check before you share"}
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-fg-muted max-w-xl mx-auto leading-relaxed font-normal">
-              {subtitle || "Paste a claim, news headline, or WhatsApp forward. Get a clear verdict, the sources behind it, and how sure we are."}
-            </p>
+            <TypewriterSubtext
+              text={
+                subtitle ||
+                "Paste a claim, news headline, or WhatsApp forward. Get a clear verdict, the sources behind it, and how sure we are"
+              }
+            />
           </div>
         </div>
       ) : (
@@ -548,7 +609,7 @@ export default function QueryForm({
       )}
 
       {/* 2. Input Box */}
-      <GlowCard className="relative z-10 suggestion-container bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs focus-within:border-fg-muted/40 focus-within:ring-0 focus-within:outline-none">
+      <GlowCard className="relative z-10 suggestion-container bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs input-box-glow focus-within:ring-0 focus-within:outline-none">
         <label htmlFor="claim-input" className="sr-only">
           Claim or statement to verify
         </label>
@@ -558,11 +619,11 @@ export default function QueryForm({
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="e.g. Is the Great Wall of China visible from space?"
+          placeholder="Type or paste something you want to verify..."
           rows={3}
           maxLength={300}
-          className="w-full bg-transparent text-fg outline-none focus:outline-none focus:ring-0 focus-visible:outline-none text-base sm:text-lg placeholder:text-fg-muted/70 caret-primary resize-none leading-relaxed"
-          style={{ fontSize: "16px" }}
+          className="w-full bg-transparent text-fg outline-none focus:outline-none focus:ring-0 focus-visible:outline-none text-base sm:text-lg placeholder:text-fg-muted/90 dark:placeholder:text-slate-400 caret-[var(--accent)] resize-none leading-relaxed"
+          style={{ fontSize: "16px", minHeight: "96px" }}
         />
 
         {/* Input Footer: shortcut hint, counter & buttons */}
@@ -623,14 +684,24 @@ export default function QueryForm({
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => handleSubmit()}
+                onClick={handleVerifyClick}
                 disabled={!query.trim()}
-                className="min-h-[40px] px-5 font-semibold text-xs sm:text-sm gap-2"
+                className="verify-submit-btn min-h-[40px] px-5 font-semibold text-xs sm:text-sm gap-2"
               >
-                <span>{isLanding ? "Check it" : "Verify"}</span>
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
+                {ripples.map((r) => (
+                  <span
+                    key={r.id}
+                    className="btn-ripple-flash"
+                    style={{ left: `${r.x}px`, top: `${r.y}px` }}
+                    aria-hidden="true"
+                  />
+                ))}
+                <span className="relative z-10 flex items-center gap-2">
+                  <span>{isLanding ? "Check it" : "Verify"}</span>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  </svg>
+                </span>
               </Button>
             )}
           </div>

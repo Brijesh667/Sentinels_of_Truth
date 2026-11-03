@@ -40,7 +40,7 @@ export default function ResponseCard({
     return (
       <Card
         ref={containerRef}
-        className="p-6 border-l-4 border-fg-muted mt-6 bg-surface shadow-xs"
+        className="p-6 border border-line mt-6 bg-surface rounded-2xl shadow-xs result-card-enter"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-fg-muted shrink-0">
@@ -71,12 +71,54 @@ export default function ResponseCard({
 
   const errorText = result.response || result.error;
 
-  // Error state
+  const isNonClaim =
+    result.call_function === false ||
+    (!result.error && Boolean(result.response)) ||
+    (typeof errorText === "string" &&
+      (errorText.toLowerCase().includes("fact-verification agent") ||
+        errorText.toLowerCase().includes("casual conversation") ||
+        errorText.toLowerCase().includes("only verify factual claims") ||
+        errorText.toLowerCase().includes("only respond to and verify")));
+
+  // Non-claim / casual conversation response
+  if (isNonClaim && !result.data) {
+    return (
+      <Card
+        ref={containerRef}
+        className="p-6 border border-line mt-6 bg-surface rounded-2xl shadow-xs space-y-3 result-card-enter"
+      >
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-lg font-bold text-fg">That doesn&apos;t look like a claim</h2>
+          {result.took_ms != null && (
+            <span className="text-[11px] sm:text-xs text-fg-muted/70 tabular-nums">
+              {formatTookMs(result.took_ms)}
+            </span>
+          )}
+        </div>
+        <p className="text-fg-muted text-sm sm:text-base leading-relaxed max-w-[65ch]">
+          I can only check factual claims. Paste a statement, headline, or forward and I&apos;ll find the evidence.
+        </p>
+        {onCheckAnother && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={onCheckAnother}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 hover:border-[var(--accent)] text-xs sm:text-sm font-medium text-fg transition-colors duration-200 cursor-pointer min-h-[40px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <span>Check another claim</span>
+            </button>
+          </div>
+        )}
+      </Card>
+    );
+  }
+
+  // Genuine Error state
   if (errorText && !result.data) {
     return (
       <Card
         ref={containerRef}
-        className="p-6 border-l-4 border-danger mt-6 bg-surface shadow-xs space-y-3"
+        className="p-6 border border-line mt-6 bg-surface rounded-2xl shadow-xs space-y-3 result-card-enter"
       >
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-bold text-fg">Verification Error</h2>
@@ -198,24 +240,31 @@ export default function ResponseCard({
     setShareDropdownOpen(false);
   };
 
-  const borderColor =
-    config.tone === "success"
-      ? "border-l-success"
-      : config.tone === "danger"
-      ? "border-l-danger"
-      : config.tone === "warning"
-      ? "border-l-warning"
-      : "border-l-line";
-
   return (
     <Card
       ref={containerRef}
-      className={`p-6 sm:p-7 border border-line border-l-4 ${borderColor} bg-surface rounded-2xl shadow-xs mt-6 space-y-6 transition-all`}
+      className="relative overflow-hidden p-5 sm:p-7 border border-line bg-surface rounded-2xl shadow-xs mt-6 space-y-6 result-card-enter"
+      style={{
+        "--verdict-color": config.varColor,
+        "--verdict-bg": config.varBg,
+        "--verdict-border": config.varBorder,
+        "--verdict-glow": config.varGlow,
+        "--verdict-gradient": config.varGradient,
+      }}
     >
-      {/* 1. TOP HEADER: VerdictBadge left, Origin tag & speed right */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-line flex-wrap gap-2.5">
+      {/* 2. Soft top-left radial glow inside the card using verdict color at ~8% opacity */}
+      <div
+        className="absolute inset-0 pointer-events-none rounded-2xl"
+        style={{
+          background: "radial-gradient(circle at 0% 0%, var(--verdict-glow) 0%, transparent 60%)",
+        }}
+        aria-hidden="true"
+      />
+
+      {/* 1. TOP HEADER: VerdictBadge left, Origin chip & speed right (no divider line, spacing only) */}
+      <div className="flex items-center justify-between flex-wrap gap-2.5 relative z-10">
         <div className="flex items-center gap-2 flex-wrap">
-          <VerdictBadge status={status} size="md" />
+          <VerdictBadge status={status} size="md" showIcon={false} />
           {result.isFromDbSuggestion && (
             <Badge variant="neutral" size="sm" className="bg-primary/10 text-primary border-primary/20 font-medium">
               Pre-verified
@@ -223,19 +272,19 @@ export default function ResponseCard({
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-fg-muted">
-          <Badge variant="neutral" size="sm">
+        <div className="flex items-center gap-2 text-[11px] sm:text-xs text-fg-muted">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-2 text-fg-muted border border-line/60">
             {originText}
-          </Badge>
+          </span>
           {result.took_ms != null && (
-            <span>{formatTookMs(result.took_ms)}</span>
+            <span className="tabular-nums text-fg-muted/70">{formatTookMs(result.took_ms)}</span>
           )}
         </div>
       </div>
 
       {/* 1.5 PRE-VERIFIED FROM DATABASE BANNER & RE-VERIFY */}
       {result.isFromDbSuggestion && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-surface-2 border border-line text-xs sm:text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-surface-2/60 border border-line text-xs sm:text-sm relative z-10">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-2 h-2 rounded-full bg-primary shrink-0" aria-hidden="true" />
             <div className="text-fg">
@@ -261,8 +310,8 @@ export default function ResponseCard({
         </div>
       )}
 
-      {/* 2. CONFIDENCE BAR */}
-      <div>
+      {/* 2. CONFIDENCE BAR (6px, muted track, animated gradient fill) */}
+      <div className="relative z-10">
         <ConfidenceMeter
           confidence={confidence}
           status={status}
@@ -270,10 +319,10 @@ export default function ResponseCard({
         />
       </div>
 
-      {/* 3. CLAIM BREAKDOWN */}
-      <div className="space-y-3">
-        <div className="p-3.5 rounded-xl bg-surface-2 border border-line">
-          <span className="text-[11px] font-semibold text-fg-muted uppercase tracking-wider block mb-1">
+      {/* 3. "YOU ASKED" BOX (Quote style with 2px muted left line, no heavy box) */}
+      <div className="space-y-3 relative z-10">
+        <div className="border-l-2 border-line pl-3.5 sm:pl-4 py-0.5 space-y-1">
+          <span className="text-[11px] font-medium text-fg-muted uppercase tracking-wider block">
             You asked
           </span>
           <p className="text-base font-medium text-fg leading-snug">
@@ -282,28 +331,28 @@ export default function ResponseCard({
         </div>
 
         {claimsDiffer && (
-          <div className="p-3 rounded-xl bg-surface-2/60 border border-line text-xs sm:text-sm">
-            <span className="text-[11px] font-semibold text-fg-muted uppercase tracking-wider block mb-0.5">
+          <div className="border-l-2 border-line/70 pl-3.5 sm:pl-4 py-0.5 space-y-0.5">
+            <span className="text-[11px] font-medium text-fg-muted uppercase tracking-wider block">
               Checked claim
             </span>
-            <p className="text-fg font-medium">{checkedClaim}</p>
+            <p className="text-sm font-medium text-fg">{checkedClaim}</p>
           </div>
         )}
       </div>
 
       {/* 4. EDITORIAL EXPLANATION ("Why") */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 relative z-10">
         <span className="text-xs font-semibold text-fg-muted uppercase tracking-wider block">
           Why
         </span>
-        <div className="text-fg text-sm sm:text-base leading-relaxed whitespace-pre-line">
+        <div className="text-base leading-relaxed text-fg-muted dark:text-slate-300 max-w-[65ch] whitespace-pre-line">
           {displayedSummary}
         </div>
         {isLongSummary && (
           <button
             type="button"
             onClick={() => setShowFullSummary((prev) => !prev)}
-            className="text-xs text-primary hover:underline font-medium min-h-[32px] inline-flex items-center cursor-pointer"
+            className="text-xs text-[var(--accent)] hover:underline font-medium min-h-[32px] inline-flex items-center cursor-pointer"
           >
             {showFullSummary ? "Show less" : "Read full context"}
           </button>
@@ -311,16 +360,17 @@ export default function ResponseCard({
       </div>
 
       {/* 5. VERIFIED SOURCES LIST */}
-      <SourceList sources={sources} />
+      <div className="relative z-10">
+        <SourceList sources={sources} />
+      </div>
 
-      {/* 6. ACTION BAR */}
-      <div className="flex items-center justify-between pt-4 border-t border-line flex-wrap gap-3 relative">
+      {/* 6. ACTION BAR (Only divider on the card is here, top spacing, quiet outlined share, text link arrow) */}
+      <div className="flex items-center justify-between pt-5 mt-6 border-t border-line flex-wrap gap-3 relative z-10">
         <div className="relative">
-          <Button
-            variant="secondary"
-            size="sm"
+          <button
+            type="button"
             onClick={handleShareClick}
-            className="min-h-[40px] gap-2 text-xs sm:text-sm"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 hover:border-[var(--accent)] text-xs sm:text-sm font-medium text-fg transition-colors duration-200 cursor-pointer min-h-[40px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <svg
               className="w-4 h-4 text-fg-muted"
@@ -332,7 +382,7 @@ export default function ResponseCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
             </svg>
             <span>Share breakdown</span>
-          </Button>
+          </button>
 
           {/* Fallback Share Dropdown */}
           {shareDropdownOpen && (
@@ -361,33 +411,37 @@ export default function ResponseCard({
               </button>
             </div>
           )}
+
           {result.isFromDbSuggestion && onReverify && (
-            <Button
-              variant="secondary"
-              size="sm"
+            <button
+              type="button"
               onClick={() => onReverify(userQuery || checkedClaim)}
-              className="min-h-[40px] gap-1.5 text-xs sm:text-sm text-primary hover:bg-surface-2"
+              className="inline-flex items-center gap-1.5 px-3 py-2 ml-2 rounded-xl border border-line bg-surface hover:bg-surface-2 text-xs sm:text-sm font-medium text-[var(--accent)] min-h-[40px] cursor-pointer"
             >
-              <svg className="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
               <span>Re-verify</span>
-            </Button>
+            </button>
           )}
         </div>
 
         {onCheckAnother && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             onClick={onCheckAnother}
-            className="min-h-[40px] gap-2 text-xs sm:text-sm text-primary hover:bg-surface-2"
+            className="group inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-[var(--accent)] hover:underline cursor-pointer min-h-[40px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-lg py-1 px-1"
           >
             <span>Check another claim</span>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
             </svg>
-          </Button>
+          </button>
         )}
       </div>
     </Card>

@@ -48,14 +48,31 @@ const GlowCard = forwardRef(function GlowCard(
       const rect = card.getBoundingClientRect();
       const x = clientX - rect.left;
       const y = clientY - rect.top;
+
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const percentX = (x - centerX) / (centerX || 1);
+      const percentY = (y - centerY) / (centerY || 1);
+
+      // Max 6 degrees tilt toward cursor
+      const tiltX = (-percentY * 6).toFixed(2);
+      const tiltY = (percentX * 6).toFixed(2);
+
       card.style.setProperty("--x", `${x}px`);
       card.style.setProperty("--y", `${y}px`);
+      card.style.setProperty("--tilt-x", `${tiltX}deg`);
+      card.style.setProperty("--tilt-y", `${tiltY}deg`);
     });
   };
 
   const handleMouseLeave = (e) => {
     if (onMouseLeave) onMouseLeave(e);
     if (rafId.current) cancelAnimationFrame(rafId.current);
+    const card = cardRef.current;
+    if (card) {
+      card.style.setProperty("--tilt-x", "0deg");
+      card.style.setProperty("--tilt-y", "0deg");
+    }
   };
 
   return (

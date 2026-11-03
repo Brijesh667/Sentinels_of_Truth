@@ -28,8 +28,20 @@ function App() {
           element={
             <React.Suspense
               fallback={
-                <div className="py-20 text-center text-fg-muted text-sm">
-                  Loading...
+                <div
+                  className="w-full bg-bg text-fg py-12 sm:py-16 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-140px)] flex flex-col justify-start items-center"
+                  aria-busy="true"
+                >
+                  <div className="max-w-3xl w-full mx-auto space-y-12 sm:space-y-16 animate-pulse opacity-40">
+                    <div className="text-center space-y-3 pb-8 border-b border-line">
+                      <div className="h-10 bg-surface-2 rounded-xl w-3/4 mx-auto" />
+                      <div className="h-4 bg-surface-2 rounded w-1/2 mx-auto" />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="h-6 bg-surface-2 rounded w-1/3" />
+                      <div className="h-20 bg-surface-2 rounded-2xl" />
+                    </div>
+                  </div>
                 </div>
               }
             >
@@ -42,8 +54,19 @@ function App() {
           element={
             <React.Suspense
               fallback={
-                <div className="py-20 text-center text-fg-muted text-sm">
-                  Loading...
+                <div
+                  className="w-full bg-bg text-fg py-12 sm:py-16 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-140px)] flex flex-col justify-start items-center"
+                  aria-busy="true"
+                >
+                  <div className="max-w-3xl w-full mx-auto space-y-8 animate-pulse opacity-40">
+                    <div className="text-center space-y-3 pb-8 border-b border-line">
+                      <div className="h-10 bg-surface-2 rounded-xl w-1/2 mx-auto" />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="h-6 bg-surface-2 rounded w-1/3" />
+                      <div className="h-16 bg-surface-2 rounded-2xl" />
+                    </div>
+                  </div>
                 </div>
               }
             >
@@ -57,7 +80,7 @@ function App() {
             element={
               <React.Suspense
                 fallback={
-                  <div className="p-8 text-center text-fg-muted">
+                  <div className="w-full min-h-[calc(100vh-140px)] p-8 text-center text-fg-muted" aria-busy="true">
                     Loading preview...
                   </div>
                 }

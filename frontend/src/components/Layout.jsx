@@ -55,7 +55,7 @@ export default function Layout() {
   }, [isLoaded, isSignedIn, showToast]);
 
   return (
-    <div className="min-h-dvh flex flex-col bg-bg text-fg transition-colors duration-200">
+    <div className="min-h-screen flex flex-col bg-bg text-fg transition-colors duration-200">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-fg focus:rounded-xl focus:shadow-lg focus:outline-hidden"
@@ -63,7 +63,7 @@ export default function Layout() {
         Skip to content
       </a>
       <Navbar />
-      <main id="main" className="flex-1 w-full overflow-x-hidden">
+      <main id="main" className="flex-1 w-full overflow-x-hidden flex flex-col">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -71,7 +71,7 @@ export default function Layout() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-            className="w-full h-full flex-1"
+            className="w-full h-full flex-1 flex flex-col"
           >
             <Outlet />
           </motion.div>

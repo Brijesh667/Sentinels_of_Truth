@@ -6,16 +6,21 @@
   --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: "Newsreader Variable", Georgia, Cambria, "Times New Roman", Times, serif;
 
+  /* Accent Color (Light Mode: Deep Blue) */
+  --accent: #0369a1;
+  --accent-fg: #ffffff;
+  --accent-glow: rgba(3, 105, 161, 0.25);
+
   --color-bg: #fbfaf8;
   --color-surface: #ffffff;
   --color-surface-2: #f3f1ec;
   --color-line: #e7e4dd;
   --color-fg: #16181d;
   --color-fg-muted: #5b616e;
-  --color-primary: #1d4ed8;
-  --color-primary-hover: #1e40af;
+  --color-primary: #0369a1;
+  --color-primary-hover: #0284c7;
   --color-primary-fg: #ffffff;
-  --color-primary-soft: #eff6ff;
+  --color-primary-soft: #f0f9ff;
   --color-success: #15803d;
   --color-success-soft: #dcfce7;
   --color-success-fg: #15803d;
@@ -25,25 +30,55 @@
   --color-warning: #b45309;
   --color-warning-soft: #fef3c7;
   --color-warning-fg: #b45309;
-  --color-ring: #1d4ed8;
+  --color-ring: #0369a1;
   --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.08);
 
   /* Spotlight Card Glow (Light mode) */
   --glow-color: rgba(3, 105, 161, 0.12);
   --glow-border: rgba(3, 105, 161, 0.5);
+
+  /* Verdict Colors & Accents (Light Mode) */
+  --verdict-true: #15803d;
+  --verdict-true-bg: rgba(21, 128, 61, 0.08);
+  --verdict-true-border: rgba(21, 128, 61, 0.25);
+  --verdict-true-glow: rgba(21, 128, 61, 0.08);
+  --verdict-true-gradient: linear-gradient(to right, #4ade80, #15803d);
+
+  --verdict-false: #b91c1c;
+  --verdict-false-bg: rgba(185, 28, 28, 0.08);
+  --verdict-false-border: rgba(185, 28, 28, 0.25);
+  --verdict-false-glow: rgba(185, 28, 28, 0.08);
+  --verdict-false-gradient: linear-gradient(to right, #f87171, #b91c1c);
+
+  --verdict-misleading: #b45309;
+  --verdict-misleading-bg: rgba(180, 83, 9, 0.08);
+  --verdict-misleading-border: rgba(180, 83, 9, 0.25);
+  --verdict-misleading-glow: rgba(180, 83, 9, 0.08);
+  --verdict-misleading-gradient: linear-gradient(to right, #fbbf24, #b45309);
+
+  --verdict-unclear: #64748b;
+  --verdict-unclear-bg: rgba(100, 116, 139, 0.08);
+  --verdict-unclear-border: rgba(100, 116, 139, 0.25);
+  --verdict-unclear-glow: rgba(100, 116, 139, 0.08);
+  --verdict-unclear-gradient: linear-gradient(to right, #94a3b8, #64748b);
 }
 
 .dark {
+  /* Accent Color (Dark Mode: Vivid Cyan) */
+  --accent: #7df9ff;
+  --accent-fg: #0b0f14;
+  --accent-glow: rgba(125, 249, 255, 0.25);
+
   --color-bg: #0d0f14;
   --color-surface: #14171e;
   --color-surface-2: #1b1f28;
   --color-line: #252a35;
   --color-fg: #eceef3;
   --color-fg-muted: #9aa1b1;
-  --color-primary: #6b9dff;
-  --color-primary-hover: #93c5fd;
-  --color-primary-fg: #0d0f14;
-  --color-primary-soft: #172554;
+  --color-primary: #7df9ff;
+  --color-primary-hover: #9cfaff;
+  --color-primary-fg: #0b0f14;
+  --color-primary-soft: #164e63;
   --color-success: #4ade80;
   --color-success-soft: #052e16;
   --color-success-fg: #4ade80;
@@ -53,12 +88,37 @@
   --color-warning: #fbbf24;
   --color-warning-soft: #451a03;
   --color-warning-fg: #fbbf24;
-  --color-ring: #6b9dff;
+  --color-ring: #7df9ff;
   --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.4);
 
   /* Spotlight Card Glow (Dark mode) */
   --glow-color: rgba(125, 249, 255, 0.15);
   --glow-border: rgba(125, 249, 255, 0.6);
+
+  /* Verdict Colors & Accents (Dark Mode) */
+  --verdict-true: #4ade80;
+  --verdict-true-bg: rgba(74, 222, 128, 0.12);
+  --verdict-true-border: rgba(74, 222, 128, 0.3);
+  --verdict-true-glow: rgba(74, 222, 128, 0.08);
+  --verdict-true-gradient: linear-gradient(to right, #86efac, #4ade80);
+
+  --verdict-false: #f87171;
+  --verdict-false-bg: rgba(248, 113, 113, 0.12);
+  --verdict-false-border: rgba(248, 113, 113, 0.3);
+  --verdict-false-glow: rgba(248, 113, 113, 0.08);
+  --verdict-false-gradient: linear-gradient(to right, #fca5a5, #f87171);
+
+  --verdict-misleading: #fbbf24;
+  --verdict-misleading-bg: rgba(251, 191, 36, 0.12);
+  --verdict-misleading-border: rgba(251, 191, 36, 0.3);
+  --verdict-misleading-glow: rgba(251, 191, 36, 0.08);
+  --verdict-misleading-gradient: linear-gradient(to right, #fde047, #fbbf24);
+
+  --verdict-unclear: #94a3b8;
+  --verdict-unclear-bg: rgba(148, 163, 184, 0.12);
+  --verdict-unclear-border: rgba(148, 163, 184, 0.3);
+  --verdict-unclear-glow: rgba(148, 163, 184, 0.08);
+  --verdict-unclear-gradient: linear-gradient(to right, #cbd5e1, #94a3b8);
 }
 
 @theme inline {
@@ -111,15 +171,39 @@ textarea:focus-visible {
   box-shadow: none !important;
 }
 
-/* Spotlight Card Glow */
+/* 1. HERO HEADLINE ENTRANCE ANIMATION (Transform only, LCP safe) */
+@keyframes headline-slide-down {
+  from {
+    transform: translateY(-24px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.hero-headline-entrance {
+  animation: headline-slide-down 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+/* 3. SPOTLIGHT CARD GLOW & 3D TILT */
 .glow-card {
   position: relative;
   isolation: isolate;
   --x: -1000px;
   --y: -1000px;
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  transform-style: preserve-3d;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease-out;
+  will-change: transform;
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .glow-card:hover {
+    transform: perspective(1000px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) scale3d(1.03, 1.03, 1.03);
+  }
+
   /* Inner radial spotlight glow */
   .glow-card::before {
     content: "";
@@ -174,6 +258,103 @@ textarea:focus-visible {
   }
 }
 
+/* 4. SCROLL REVEAL (Opacity and Transform only, zero CLS) */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-header,
+  .reveal-card {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .is-revealed .reveal-header,
+  .is-revealed .reveal-card {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 5. VERIFY / SUBMIT BUTTON (Strongest CTA element) */
+.verify-submit-btn {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--accent) !important;
+  color: var(--accent-fg) !important;
+  font-weight: 600;
+  box-shadow: 0 2px 10px var(--accent-glow);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease-out, opacity 0.2s ease;
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .verify-submit-btn:not(:disabled):hover {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 24px var(--accent-glow);
+  }
+}
+
+.verify-submit-btn:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.verify-submit-btn:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.verify-submit-btn:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* 6. INPUT BOX FOCUS & GLOW (0.2s transition, border & shadow only) */
+.input-box-glow {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-box-glow:focus-within {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 20px var(--accent-glow) !important;
+}
+
+@keyframes btn-ripple-effect {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(10);
+    opacity: 0;
+  }
+}
+
+.btn-ripple-flash {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  animation: btn-ripple-effect 0.45s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* REDUCED MOTION PREFERENCES */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .glow-card {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .glow-card::before,
+  .glow-card::after {
+    display: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -184,8 +365,47 @@ textarea:focus-visible {
     scroll-behavior: auto !important;
   }
 
-  .glow-card::before,
-  .glow-card::after {
+  .hero-headline-entrance {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .reveal-header,
+  .reveal-card {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .verify-submit-btn {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .btn-ripple-flash {
     display: none !important;
   }
+
+  .result-card-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Result Card Entrance Animation */
+@keyframes resultCardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-card-enter {
+  animation: resultCardEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }

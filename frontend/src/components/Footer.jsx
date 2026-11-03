@@ -24,10 +24,10 @@ export default function Footer() {
   return (
     <footer className="w-full bg-surface border-t border-line transition-colors duration-200 mt-auto">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 text-center md:text-left text-sm text-fg-muted dark:text-slate-400">
           {/* Left: Honest reminder */}
-          <div>
-            <p className="text-xs text-fg-muted">
+          <div className="flex items-center">
+            <p className="text-sm text-fg-muted dark:text-slate-400">
               AI can make mistakes. Check primary sources.
             </p>
           </div>
@@ -37,32 +37,32 @@ export default function Footer() {
             <Link
               to="/"
               onClick={handleVerifyClick}
-              className="text-fg-muted hover:text-fg transition-colors"
+              className="text-fg-muted dark:text-slate-400 hover:text-[var(--accent)] transition-colors cursor-pointer"
             >
               Verify a claim
             </Link>
             <Link
               to="/about"
-              className="text-fg-muted hover:text-fg transition-colors"
+              className="text-fg-muted dark:text-slate-400 hover:text-[var(--accent)] transition-colors cursor-pointer"
             >
               About
             </Link>
             <Link
               to="/privacy"
-              className="text-fg-muted hover:text-fg transition-colors"
+              className="text-fg-muted dark:text-slate-400 hover:text-[var(--accent)] transition-colors cursor-pointer"
             >
               Privacy
             </Link>
           </nav>
 
           {/* Right: Open source link */}
-          <div className="text-xs text-fg-muted">
+          <div className="flex items-center">
             {siteConfig.github && (
               <a
                 href={siteConfig.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline font-medium"
+                className="text-sm text-fg-muted dark:text-slate-400 hover:text-[var(--accent)] transition-colors"
               >
                 GitHub
               </a>

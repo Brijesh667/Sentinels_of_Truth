@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import usePageTitle from "../utils/usePageTitle";
 import QueryForm from "../components/QueryForm";
@@ -19,9 +19,26 @@ const HOW_IT_WORKS_STEPS = [
   },
 ];
 
+const WHY_TRUST_POINTS = [
+  {
+    title: "Every verdict has sources",
+    desc: "We link original sources so you can read them yourself.",
+  },
+  {
+    title: "We show our confidence",
+    desc: "Not every claim is black and white, so we tell you how sure we are.",
+  },
+  {
+    title: "We admit when it's unclear",
+    desc: "If the evidence is disputed, we say so instead of guessing.",
+  },
+];
+
 export default function LandingPage() {
   usePageTitle("Sentinels of Truth — Check before you share");
   const location = useLocation();
+  const howItWorksRef = useRef(null);
+  const whyTrustRef = useRef(null);
 
   useEffect(() => {
     if (location.state?.scrollTo === "how-it-works") {
@@ -35,12 +52,31 @@ export default function LandingPage() {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-revealed");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.25 }
+    );
+
+    if (howItWorksRef.current) observer.observe(howItWorksRef.current);
+    if (whyTrustRef.current) observer.observe(whyTrustRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="w-full bg-bg text-fg transition-colors">
       {/* 1. HERO SECTION: Full-featured Verifier as the Hero */}
       <section
         aria-label="Hero"
-        className="pt-10 sm:pt-14 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8"
+        className="pt-8 sm:pt-12 pb-10 sm:pb-14 px-4 sm:px-6 lg:px-8"
       >
         <QueryForm isLanding={true} />
       </section>
@@ -48,10 +84,11 @@ export default function LandingPage() {
       {/* 2. HOW IT WORKS */}
       <section
         id="how-it-works"
+        ref={howItWorksRef}
         aria-labelledby="how-it-works-heading"
-        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto scroll-mt-20"
+        className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto scroll-mt-20"
       >
-        <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+        <div className="reveal-header text-center max-w-2xl mx-auto mb-10 sm:mb-12">
           <h2
             id="how-it-works-heading"
             className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-fg tracking-tight"
@@ -64,16 +101,20 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {HOW_IT_WORKS_STEPS.map((step) => (
+          {HOW_IT_WORKS_STEPS.map((step, idx) => (
             <Card
               key={step.title}
-              className="p-6 sm:p-7 border border-line bg-surface rounded-2xl flex flex-col justify-between"
+              style={{ transitionDelay: `${idx * 120}ms` }}
+              className="reveal-card min-h-[140px] sm:min-h-[160px] h-full p-6 sm:p-7 border border-line bg-surface rounded-2xl flex flex-col justify-between"
             >
               <div>
-                <h3 className="font-serif font-bold text-lg text-fg mb-2">
+                <span className="text-xs sm:text-sm font-semibold tracking-wider tabular-nums text-[var(--accent)] mb-2 block">
+                  0{idx + 1}
+                </span>
+                <h3 className="font-serif font-bold text-lg sm:text-xl text-fg mb-2">
                   {step.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-fg-muted leading-relaxed">
+                <p className="text-base text-fg-muted/95 dark:text-slate-300 leading-relaxed">
                   {step.desc}
                 </p>
               </div>
@@ -84,10 +125,11 @@ export default function LandingPage() {
 
       {/* 3. WHY TRUST SENTINELS */}
       <section
+        ref={whyTrustRef}
         aria-labelledby="why-trust-heading"
-        className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto"
+        className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto"
       >
-        <div className="text-center max-w-2xl mx-auto mb-10">
+        <div className="reveal-header text-center max-w-2xl mx-auto mb-10 sm:mb-12">
           <h2
             id="why-trust-heading"
             className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-fg tracking-tight"
@@ -99,33 +141,23 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <Card className="p-5 text-center sm:text-left">
-            <h3 className="font-semibold text-sm text-fg mb-1">
-              Every verdict has sources
-            </h3>
-            <p className="text-xs text-fg-muted leading-relaxed">
-              We link original sources so you can read them yourself.
-            </p>
-          </Card>
-
-          <Card className="p-5 text-center sm:text-left">
-            <h3 className="font-semibold text-sm text-fg mb-1">
-              We show our confidence
-            </h3>
-            <p className="text-xs text-fg-muted leading-relaxed">
-              Not every claim is black and white, so we tell you how sure we are.
-            </p>
-          </Card>
-
-          <Card className="p-5 text-center sm:text-left">
-            <h3 className="font-semibold text-sm text-fg mb-1">
-              We admit when it&apos;s unclear
-            </h3>
-            <p className="text-xs text-fg-muted leading-relaxed">
-              If the evidence is disputed, we say so instead of guessing.
-            </p>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {WHY_TRUST_POINTS.map((item, idx) => (
+            <Card
+              key={item.title}
+              style={{ transitionDelay: `${idx * 120}ms` }}
+              className="reveal-card min-h-[140px] sm:min-h-[160px] h-full p-6 sm:p-7 border border-line bg-surface rounded-2xl flex flex-col justify-between"
+            >
+              <div>
+                <h3 className="font-serif font-bold text-lg sm:text-xl text-fg mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-base text-fg-muted/95 dark:text-slate-300 leading-relaxed">
+                  {item.desc}
+                </p>
+              </div>
+            </Card>
+          ))}
         </div>
       </section>
     </div>
