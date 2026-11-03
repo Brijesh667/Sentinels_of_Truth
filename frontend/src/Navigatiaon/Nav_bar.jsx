@@ -181,37 +181,18 @@ export default function Navbar() {
               />
             </div>
           ) : (
-            <>
-              {/* Mobile: Profile icon button */}
-              <button
-                type="button"
-                onClick={() =>
-                  openSignIn({
-                    fallbackRedirectUrl: location.pathname || "/",
-                  })
-                }
-                aria-label="Profile / Sign In"
-                title="Profile / Sign In"
-                className="sm:hidden w-8 h-8 min-w-[32px] min-h-[32px] rounded-full border border-line bg-surface-2/70 hover:bg-surface-2 text-fg-muted hover:text-fg flex items-center justify-center transition cursor-pointer shrink-0"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </button>
-              {/* Desktop: Sign In text button */}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  openSignIn({
-                    fallbackRedirectUrl: location.pathname || "/",
-                  })
-                }
-                className="hidden sm:inline-flex font-medium min-h-[36px] sm:min-h-[38px] px-2.5 sm:px-3.5 text-xs sm:text-sm shrink-0"
-              >
-                Sign In
-              </Button>
-            </>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                openSignIn({
+                  fallbackRedirectUrl: location.pathname || "/",
+                })
+              }
+              className="font-medium min-h-[34px] sm:min-h-[38px] px-2.5 sm:px-3.5 text-xs sm:text-sm shrink-0"
+            >
+              Sign In
+            </Button>
           )}
 
           {/* 3. Three-line hamburger button (Mobile only) */}
