@@ -47,7 +47,6 @@ app.use("/get/validate-stream", optionalAuth, validate(querySchema), verifyQuota
 app.use("/get/validate", optionalAuth, validate(querySchema), verifyQuota);
 app.use("/get", response_route);
 
-app.get("/health", (req, res) => res.sendStatus(200));
 // History routes (requireAuth inside router)
 app.use("/history", history_route);
 
