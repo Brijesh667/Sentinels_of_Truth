@@ -22,6 +22,7 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/how-it-works" element={<LandingPage />} />
         <Route path="/app" element={<Navigate to="/" replace />} />
         <Route
           path="/about"

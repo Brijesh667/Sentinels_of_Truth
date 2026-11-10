@@ -1,14 +1,22 @@
+import "../config/env.js";
 import { GoogleGenAI } from "@google/genai";
 import StartChat from "./alpha.js";
 import pineconeIndex from "../config/dataBase.js";
 import insertIntoPinecone from "../utils/SaveResponse.js";
 import embedded from "../utils/embedded.js";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_API_KEY,
-});
+let aiClient = null;
+function getAi() {
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+    });
+  }
+  return aiClient;
+}
 
 async function getDecisionFromLLM(alpha_response, existingMatches) {
+  const ai = getAi();
   const decision = await ai.models.generateContent({
     model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
 

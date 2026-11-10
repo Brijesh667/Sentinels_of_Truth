@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import usePageTitle from "../utils/usePageTitle";
 import QueryForm from "../components/QueryForm";
 import Card from "../components/ui/Card";
+import LightRays from "@/registry/react-bits/LightRays";
+import ButtonCrossArrow from "@/registry/ui-layouts/btn-cross-arrow";
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -41,16 +43,15 @@ export default function LandingPage() {
   const whyTrustRef = useRef(null);
 
   useEffect(() => {
-    if (location.state?.scrollTo === "how-it-works") {
-      window.history.replaceState(null, "", "/how-it-works");
+    if (location.state?.scrollTo === "how-it-works" || location.pathname === "/how-it-works") {
       setTimeout(() => {
         const el = document.getElementById("how-it-works");
         if (el) {
           el.scrollIntoView({ behavior: "smooth" });
         }
-      }, 100);
+      }, 150);
     }
-  }, [location.state]);
+  }, [location.state, location.pathname]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -73,12 +74,28 @@ export default function LandingPage() {
 
   return (
     <div className="w-full bg-bg text-fg transition-colors">
-      {/* 1. HERO SECTION: Full-featured Verifier as the Hero */}
+      {/* 1. HERO SECTION: Light Rays Background */}
       <section
         aria-label="Hero"
-        className="pt-8 sm:pt-12 pb-10 sm:pb-14 px-4 sm:px-6 lg:px-8"
+        className="relative w-full bg-black dark text-white overflow-hidden pt-8 sm:pt-12 pb-14 sm:pb-20 px-4 sm:px-6 lg:px-8"
       >
-        <QueryForm isLanding={true} />
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#ffffff"
+            raysSpeed={1}
+            lightSpread={1}
+            rayLength={2}
+            pulsating={false}
+            followMouse={true}
+            mouseInfluence={0.15}
+          />
+        </div>
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <QueryForm isLanding={true} />
+        </div>
+        {/* Soft bottom transition into next section */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-bg pointer-events-none z-10" />
       </section>
 
       {/* 2. HOW IT WORKS */}
@@ -158,6 +175,29 @@ export default function LandingPage() {
               </div>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* 4. CALL TO ACTION: Check a claim */}
+      <section className="py-12 sm:py-16 px-4 text-center">
+        <div className="max-w-md mx-auto flex flex-col items-center space-y-4">
+          <h3 className="font-serif font-bold text-2xl sm:text-3xl text-fg tracking-tight">
+            Ready to check a claim?
+          </h3>
+          <p className="text-sm text-fg-muted">
+            Paste any rumor, forward, or headline to get live evidence and confidence scores.
+          </p>
+          <div className="pt-2">
+            <ButtonCrossArrow
+              text="Check a claim"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                setTimeout(() => {
+                  document.getElementById("claim-input")?.focus();
+                }, 350);
+              }}
+            />
+          </div>
         </div>
       </section>
     </div>

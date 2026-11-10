@@ -1,12 +1,4 @@
-import path from "path";
-import { fileURLToPath } from "url";
-import * as dotenv from "dotenv";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
-dotenv.config({ path: path.resolve(__dirname, ".env") });
-dotenv.config();
-
+import "./config/env.js";
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -28,13 +20,36 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(helmet());
+
+const explicitAllowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      // Allow non-browser requests (e.g. server-to-server, curl, tests)
+      if (!origin) return callback(null, true);
+      if (
+        explicitAllowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        /^http:\/\/localhost:\d+$/.test(origin) ||
+        /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Guest-Id"],
   })
 );
+
 app.use(express.json({ limit: "20kb" }));
 app.use(globalLimiter);
 app.use(clerkMiddleware());
@@ -47,7 +62,8 @@ app.use("/get/validate-stream", optionalAuth, validate(querySchema), verifyQuota
 app.use("/get/validate", optionalAuth, validate(querySchema), verifyQuota);
 app.use("/get", response_route);
 app.get("/health", (req, res) => res.sendStatus(200));
-// History routes (requireAuth inside router)
+
+// History routes
 app.use("/history", history_route);
 
 // Suggestions

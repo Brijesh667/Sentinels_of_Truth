@@ -57,19 +57,21 @@ async function saveGuestResultQuietly(guestId, payload) {
   try {
     if (guestId && getIsMongoConnected()) {
       const count = await GuestResult.countDocuments({ guestId });
-      if (count < 5) {
-        await GuestResult.create({
-          guestId,
-          query: payload.query,
-          claim: payload.data?.claim || payload.query,
-          result: payload.data,
-          cached: Boolean(payload.cached),
-          origin: payload.origin,
-          verifiedAt: payload.verifiedAt ? new Date(payload.verifiedAt) : null,
-          matchedClaim: payload.matchedClaim || null,
-          tookMs: payload.took_ms || 0,
-        });
+      if (count >= 20) {
+        const oldest = await GuestResult.findOne({ guestId }).sort({ createdAt: 1 });
+        if (oldest) await GuestResult.findByIdAndDelete(oldest._id);
       }
+      await GuestResult.create({
+        guestId,
+        query: payload.query,
+        claim: payload.data?.claim || payload.query,
+        result: payload.data,
+        cached: Boolean(payload.cached),
+        origin: payload.origin,
+        verifiedAt: payload.verifiedAt ? new Date(payload.verifiedAt) : null,
+        matchedClaim: payload.matchedClaim || null,
+        tookMs: payload.took_ms || 0,
+      });
     }
   } catch (error) {
     console.warn("Failed to record guest result:", error.message);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { UserButton } from "@clerk/clerk-react";
 import { motion } from "motion/react";
@@ -7,6 +7,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import Sheet from "../components/ui/Sheet";
 import Button from "../components/ui/Button";
 import { useAppAuth } from "../auth/useAppAuth";
+import { DirectionAwareTabs } from "@/registry/cult-ui/direction-aware-tabs";
 
 export default function Navbar() {
   const { isLoaded, isSignedIn, openSignIn } = useAppAuth();
@@ -14,8 +15,81 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const [activeTabId, setActiveTabId] = useState(() => {
+    if (location.pathname === "/about") return 2;
+    if (location.pathname === "/how-it-works" || location.hash === "#how-it-works") return 1;
+    return 0;
+  });
+
+  const isManualScrollRef = useRef(false);
+  const manualScrollTimerRef = useRef(null);
+
+  // Sync route changes
+  useEffect(() => {
+    if (location.pathname === "/about") {
+      setActiveTabId(2);
+    } else if (location.pathname === "/how-it-works" || location.hash === "#how-it-works") {
+      setActiveTabId(1);
+    } else if (location.pathname === "/") {
+      const el = document.getElementById("how-it-works");
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const threshold = window.innerHeight * 0.45;
+        if (rect.top <= threshold && rect.bottom >= 100) {
+          setActiveTabId(1);
+          return;
+        }
+      }
+      setActiveTabId(0);
+    }
+  }, [location.pathname, location.hash]);
+
+  // Scroll spy on home / landing page to detect when user scrolls to/from "How it works"
+  useEffect(() => {
+    if (location.pathname !== "/" && location.pathname !== "/how-it-works") {
+      return;
+    }
+
+    const onScroll = () => {
+      if (isManualScrollRef.current) return;
+
+      const howItWorksEl = document.getElementById("how-it-works");
+      if (!howItWorksEl) {
+        if (window.scrollY < 200) {
+          setActiveTabId(0);
+        }
+        return;
+      }
+
+      const rect = howItWorksEl.getBoundingClientRect();
+      const threshold = window.innerHeight * 0.45;
+
+      if (rect.top <= threshold && rect.bottom >= 120) {
+        setActiveTabId(1);
+      } else if (rect.top > threshold) {
+        setActiveTabId(0);
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (manualScrollTimerRef.current) clearTimeout(manualScrollTimerRef.current);
+    };
+  }, [location.pathname]);
+
   const handleHomeClick = (e) => {
     if (e) e.preventDefault();
+    isManualScrollRef.current = true;
+    if (manualScrollTimerRef.current) clearTimeout(manualScrollTimerRef.current);
+    manualScrollTimerRef.current = setTimeout(() => {
+      isManualScrollRef.current = false;
+    }, 850);
+
+    setActiveTabId(0);
+
     if (location.pathname !== "/" || location.search || location.hash || window.location.pathname !== "/") {
       navigate("/");
     }
@@ -37,9 +111,17 @@ export default function Navbar() {
   };
 
   const handleHowItWorksClick = (e) => {
-    e.preventDefault();
-    if (location.pathname !== "/") {
-      navigate("/how-it-works");
+    if (e) e.preventDefault();
+    isManualScrollRef.current = true;
+    if (manualScrollTimerRef.current) clearTimeout(manualScrollTimerRef.current);
+    manualScrollTimerRef.current = setTimeout(() => {
+      isManualScrollRef.current = false;
+    }, 850);
+
+    setActiveTabId(1);
+
+    if (location.pathname !== "/" && location.pathname !== "/how-it-works") {
+      navigate("/", { state: { scrollTo: "how-it-works" } });
     } else {
       const el = document.getElementById("how-it-works");
       if (el) {
@@ -47,6 +129,31 @@ export default function Navbar() {
       }
     }
   };
+
+  const handleAboutClick = () => {
+    setActiveTabId(2);
+    if (location.pathname !== "/about") {
+      navigate("/about");
+    }
+  };
+
+  const navTabs = [
+    {
+      id: 0,
+      label: "Home",
+      onClick: handleHomeClick,
+    },
+    {
+      id: 1,
+      label: "How it works",
+      onClick: handleHowItWorksClick,
+    },
+    {
+      id: 2,
+      label: "About",
+      onClick: handleAboutClick,
+    },
+  ];
 
   return (
     <header className="sticky top-0 z-40 w-full h-14 sm:h-16 bg-bg/85 backdrop-blur-md border-b border-line pt-[env(safe-area-inset-top,0px)] transition-colors duration-200 relative overflow-hidden">
@@ -82,55 +189,19 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Center Column: Nav pill (desktop only) */}
+        {/* Center Column: Direction-aware Nav Tabs (desktop only) */}
         <nav
-          className="hidden md:flex items-center justify-self-center gap-1 p-1 rounded-full bg-surface-2/70 border border-line/70"
+          className="hidden md:flex items-center justify-self-center"
           aria-label="Main Navigation"
         >
-          <motion.a
-            href="/how-it-works"
-            onClick={handleHowItWorksClick}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={`relative px-4 py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-full cursor-pointer select-none ${
-              window.location.pathname === "/how-it-works" || location.hash === "#how-it-works"
-                ? "text-fg font-semibold"
-                : "text-fg-muted hover:text-fg"
-            }`}
-          >
-            {(window.location.pathname === "/how-it-works" || location.hash === "#how-it-works") && (
-              <motion.span
-                layoutId="navbar-pill"
-                className="absolute inset-0 rounded-full bg-surface border border-line shadow-2xs -z-10"
-                transition={{ type: "spring", stiffness: 380, damping: 28 }}
-              />
-            )}
-            How it works
-          </motion.a>
-
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="relative"
-          >
-            <Link
-              to="/about"
-              className={`relative block px-4 py-1.5 text-xs sm:text-sm font-medium transition-colors rounded-full select-none ${
-                location.pathname === "/about"
-                  ? "text-fg font-semibold"
-                  : "text-fg-muted hover:text-fg"
-              }`}
-            >
-              {location.pathname === "/about" && (
-                <motion.span
-                  layoutId="navbar-pill"
-                  className="absolute inset-0 rounded-full bg-surface border border-line shadow-2xs -z-10"
-                  transition={{ type: "spring", stiffness: 380, damping: 28 }}
-                />
-              )}
-              About
-            </Link>
-          </motion.div>
+          <DirectionAwareTabs
+            tabs={navTabs}
+            activeId={activeTabId}
+            onTabClick={(id, tab) => tab.onClick?.()}
+            showContent={false}
+            layoutId="navbar-desktop-tabs"
+            className="p-1 bg-surface-2/70 border border-line/70"
+          />
         </nav>
 
         {/* Right Column: */}
@@ -181,18 +252,22 @@ export default function Navbar() {
               />
             </div>
           ) : (
-            <Button
-              variant="secondary"
-              size="sm"
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() =>
                 openSignIn({
                   fallbackRedirectUrl: location.pathname || "/",
                 })
               }
-              className="font-medium min-h-[34px] sm:min-h-[38px] px-2.5 sm:px-3.5 text-xs sm:text-sm shrink-0"
+              className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-line bg-surface/90 dark:bg-surface-2/90 px-4 py-1.5 text-xs sm:text-sm font-semibold text-fg transition-all duration-300 hover:border-primary/60 hover:text-primary dark:hover:text-[#7df9ff] dark:hover:border-[#7df9ff]/50 hover:shadow-lg hover:shadow-primary/10 dark:hover:shadow-cyan-500/20 cursor-pointer shrink-0"
             >
-              Sign In
-            </Button>
+              {/* Animated Sheen / Glint light that wipes across on hover */}
+              <span className="absolute inset-0 -translate-x-[110%] group-hover:translate-x-[110%] transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-white/30 dark:via-cyan-400/30 to-transparent pointer-events-none" />
+
+              <span className="relative z-10">Sign In</span>
+            </motion.button>
           )}
 
           {/* 3. Three-line hamburger button (Mobile only) */}
@@ -230,7 +305,34 @@ export default function Navbar() {
         }
         description="Public evidence-backed verification"
       >
-        <nav className="flex flex-col gap-2 pt-2">
+        <nav className="flex flex-col gap-3 pt-2">
+          <div className="w-full">
+            <DirectionAwareTabs
+              tabs={navTabs}
+              activeId={activeTabId}
+              onTabClick={(id, tab) => {
+                setMobileMenuOpen(false);
+                tab.onClick?.();
+              }}
+              showContent={false}
+              layoutId="navbar-mobile-tabs"
+              className="w-full justify-around bg-surface-2/80 border border-line"
+            />
+          </div>
+
+          {!isSignedIn && (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openSignIn({ fallbackRedirectUrl: location.pathname || "/" });
+              }}
+              className="flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary hover:bg-primary-hover shadow-xs transition cursor-pointer"
+            >
+              <span>Sign In</span>
+            </button>
+          )}
+
           {isSignedIn && (
             <button
               type="button"
@@ -246,25 +348,6 @@ export default function Navbar() {
               <span>My History</span>
             </button>
           )}
-
-          <a
-            href="/how-it-works"
-            onClick={(e) => {
-              setMobileMenuOpen(false);
-              handleHowItWorksClick(e);
-            }}
-            className="flex items-center gap-2 px-3.5 py-3 rounded-xl text-sm font-medium text-fg hover:bg-surface-2 transition"
-          >
-            <span>How it works</span>
-          </a>
-
-          <Link
-            to="/about"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 px-3.5 py-3 rounded-xl text-sm font-medium text-fg hover:bg-surface-2 transition"
-          >
-            <span>About</span>
-          </Link>
         </nav>
       </Sheet>
     </header>

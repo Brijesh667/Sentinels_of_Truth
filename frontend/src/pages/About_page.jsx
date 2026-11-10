@@ -1,12 +1,14 @@
 import { useEffect } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import usePageTitle from "../utils/usePageTitle";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
+import ButtonArrowRight from "@/registry/ui-layouts/btn-arrow-right";
 
 export default function AboutPage() {
   usePageTitle("About — Sentinels of Truth");
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (location.hash) {
@@ -38,18 +40,11 @@ export default function AboutPage() {
           <p className="text-base sm:text-lg text-fg-muted dark:text-slate-300 leading-relaxed max-w-2xl">
             Check any claim, headline, or forward in seconds. You get a verdict, the sources, and how sure we are.
           </p>
-          <div className="pt-1">
-            <Button
-              variant="primary"
-              size="sm"
-              to="/"
-              className="verify-submit-btn min-h-[42px] px-6 text-sm font-semibold inline-flex items-center gap-2 cursor-pointer"
-            >
-              <span>Check a claim</span>
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </Button>
+          <div className="pt-2">
+            <ButtonArrowRight
+              text="Check a claim"
+              onClick={() => navigate("/")}
+            />
           </div>
         </header>
 

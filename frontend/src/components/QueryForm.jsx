@@ -9,6 +9,9 @@ import HistorySheet from "./HistorySheet";
 import ThoughtLine from "./reactbits/ThoughtLine";
 import Button from "./ui/Button";
 import Card, { GlowCard } from "./ui/Card";
+import { ShimmerButton } from "@/registry/magic-ui/shimmer-button";
+import { Button as MovingBorderButton } from "@/registry/aceternity-ui/moving-border";
+import ButtonBackgroundShine from "@/registry/ui-layouts/btn-bg-shine";
 
 const STAGE_LABELS = {
   checking_cache: "Checking verified records...",
@@ -55,7 +58,7 @@ function TypewriterSubtext({ text }) {
 
   return (
     <p
-      className="relative text-base sm:text-lg md:text-xl text-fg-muted max-w-xl mx-auto leading-relaxed font-normal min-h-[3.25rem] sm:min-h-[3.5rem] md:min-h-[3.75rem]"
+      className="relative text-base sm:text-lg md:text-xl text-fg-muted dark:text-slate-300 max-w-xl mx-auto leading-relaxed font-normal min-h-[3.25rem] sm:min-h-[3.5rem] md:min-h-[3.75rem]"
       aria-label={text}
     >
       {/* Invisible placeholder reserving exact layout height & width to guarantee zero CLS */}
@@ -443,9 +446,7 @@ export default function QueryForm({
           }, 800);
         }
 
-        if (isSignedIn) {
-          setHistoryTrigger((prev) => prev + 1);
-        }
+        setHistoryTrigger((prev) => prev + 1);
       },
       onError: (errorData, status) => {
         if (coldStartTimerRef.current) clearTimeout(coldStartTimerRef.current);
@@ -488,7 +489,11 @@ export default function QueryForm({
   };
 
   const handleVerifyClick = (e) => {
-    if (!query.trim() || loading || cooldown > 0 || isDailyLimitReached) return;
+    if (!query.trim()) {
+      textareaRef.current?.focus();
+      return;
+    }
+    if (loading || cooldown > 0 || isDailyLimitReached) return;
     const button = e.currentTarget;
     if (button) {
       const rect = button.getBoundingClientRect();
@@ -567,7 +572,7 @@ export default function QueryForm({
       {isLanding ? (
         <div className="max-w-3xl mx-auto pb-2 relative">
           <div className="text-center space-y-3">
-            <h1 className="hero-headline-entrance font-serif font-semibold text-3xl sm:text-5xl md:text-6xl text-fg tracking-tight leading-[1.15] min-h-[2.5rem] sm:min-h-[3.75rem] md:min-h-[4.5rem]">
+            <h1 className="hero-headline-entrance font-serif font-bold text-3xl sm:text-5xl md:text-6xl tracking-tight leading-[1.15] min-h-[2.5rem] sm:min-h-[3.75rem] md:min-h-[4.5rem] bg-gradient-to-b from-slate-100 via-white to-slate-400 bg-clip-text text-transparent drop-shadow-sm">
               {title || "Is it true? Check before you share"}
             </h1>
             <TypewriterSubtext
@@ -648,9 +653,7 @@ export default function QueryForm({
 
           <div className="flex items-center gap-2">
             {loading ? (
-              <Button
-                variant="danger"
-                size="sm"
+              <ButtonBackgroundShine
                 onClick={handleStop}
                 className="min-h-[40px] px-4 font-semibold text-xs sm:text-sm gap-1.5"
               >
@@ -658,18 +661,20 @@ export default function QueryForm({
                   <rect x="6" y="6" width="12" height="12" rx="2" />
                 </svg>
                 <span>Stop</span>
-              </Button>
+              </ButtonBackgroundShine>
             ) : cooldown > 0 ? (
-              <Button
-                variant="secondary"
-                size="sm"
+              <MovingBorderButton
+                duration={2500}
+                borderRadius="0.75rem"
+                containerClassName="h-10 min-w-[110px]"
+                borderClassName="bg-[radial-gradient(#f59e0b_40%,transparent_60%)]"
+                className="text-xs sm:text-sm font-semibold text-warning bg-surface-2 dark:bg-slate-900 border-warning/40 px-3 cursor-pointer"
                 onClick={() => navigate("/about#usage-limits")}
-                className="min-h-[40px] px-4 font-semibold text-xs sm:text-sm border-line bg-surface-2 text-warning hover:bg-surface-3 hover:border-warning/50 cursor-pointer transition-colors"
                 title="Cooldown active. Click to view Usage Limits & Rate Limiting"
                 aria-label={`Please wait ${cooldown} seconds. Click to view Usage Limits & Rate Limiting.`}
               >
                 <span>Wait {cooldown}s</span>
-              </Button>
+              </MovingBorderButton>
             ) : isDailyLimitReached ? (
               <Button
                 variant="secondary"
@@ -681,28 +686,25 @@ export default function QueryForm({
                 <span>Daily limit reached</span>
               </Button>
             ) : (
-              <Button
-                variant="primary"
-                size="sm"
+              <ShimmerButton
                 onClick={handleVerifyClick}
-                disabled={!query.trim()}
-                className="verify-submit-btn min-h-[40px] px-5 font-semibold text-xs sm:text-sm gap-2"
+                className="h-10 min-h-[40px] text-xs sm:text-sm font-semibold"
               >
-                {ripples.map((r) => (
-                  <span
-                    key={r.id}
-                    className="btn-ripple-flash"
-                    style={{ left: `${r.x}px`, top: `${r.y}px` }}
-                    aria-hidden="true"
-                  />
-                ))}
-                <span className="relative z-10 flex items-center gap-2">
+                <span className="flex items-center gap-2">
                   <span>{isLanding ? "Check it" : "Verify"}</span>
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
+                  <div className="relative h-4 w-4 overflow-hidden flex items-center justify-center">
+                    <svg
+                      className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </div>
                 </span>
-              </Button>
+              </ShimmerButton>
             )}
           </div>
         </div>

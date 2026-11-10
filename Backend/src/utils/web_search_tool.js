@@ -1,11 +1,18 @@
+import "../config/env.js";
 import { tavily } from "@tavily/core";
-import * as dotenv from "dotenv";
 
-dotenv.config();
+let tvlyClient = null;
 
-const tvly = tavily({
-  apiKey: process.env.TAVILY_API_KEY,
-});
+function getTavily() {
+  if (!tvlyClient) {
+    const apiKey = process.env.TAVILY_API_KEY;
+    if (!apiKey) {
+      throw new Error("No API key provided. Please set the TAVILY_API_KEY environment variable.");
+    }
+    tvlyClient = tavily({ apiKey });
+  }
+  return tvlyClient;
+}
 
 export default async function search(query, maxResults = 3, signal) {
   if (!query?.trim()) {
@@ -22,7 +29,8 @@ export default async function search(query, maxResults = 3, signal) {
   }
 
   try {
-    const { results = [] } = await tvly.search(query, {
+    const client = getTavily();
+    const { results = [] } = await client.search(query, {
       max_results: maxResults,
       search_depth: "basic",
       signal,
@@ -48,9 +56,10 @@ export default async function search(query, maxResults = 3, signal) {
       err.name = "AbortError";
       throw err;
     }
+
     return {
       success: false,
-      error: error.message || "Search failed",
+      error: error.message || "Tavily search failed",
     };
   }
 }

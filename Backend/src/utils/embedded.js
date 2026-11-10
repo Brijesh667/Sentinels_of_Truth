@@ -1,11 +1,19 @@
-import * as dotenv from "dotenv";
-dotenv.config();
+import "../config/env.js";
 import { GoogleGenAI } from "@google/genai";
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_API_KEY,
-});
+
+let aiClient = null;
+
+function getAi() {
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_API_KEY,
+    });
+  }
+  return aiClient;
+}
 
 export default async function embedded(textToEmbed) {
+  const ai = getAi();
   const embedResult = await ai.models.embedContent({
     model: "gemini-embedding-2",
     contents: textToEmbed,
@@ -15,4 +23,4 @@ export default async function embedded(textToEmbed) {
   });
 
   return embedResult.embeddings[0].values;
-}   
+}

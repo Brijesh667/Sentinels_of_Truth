@@ -5,7 +5,7 @@ import {
   deleteHistoryItem,
   clearHistory,
 } from "../controllers/history.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, authOrGuest } from "../middleware/auth.js";
 import { adoptGuestHistory } from "../utils/adoptGuestHistory.js";
 
 const UUID_REGEX =
@@ -39,8 +39,8 @@ history_route.post("/adopt", requireAuth, adoptLimiter, async (req, res) => {
   }
 });
 
-history_route.get("/", requireAuth, getHistory);
-history_route.delete("/", requireAuth, clearHistory);
-history_route.delete("/:id", requireAuth, deleteHistoryItem);
+history_route.get("/", authOrGuest, getHistory);
+history_route.delete("/", authOrGuest, clearHistory);
+history_route.delete("/:id", authOrGuest, deleteHistoryItem);
 
 export default history_route;

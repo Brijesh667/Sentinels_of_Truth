@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAppAuth } from "../auth/useAppAuth";
+import { getStoredGuestId } from "../utils/guestId.js";
 import Sheet from "./ui/Sheet";
 import Button from "./ui/Button";
 import VerdictBadge from "./ui/VerdictBadge";
@@ -51,7 +52,7 @@ export default function HistorySheet({
   onSelectHistory,
   refreshTrigger,
 }) {
-  const { getAccessToken, isSignedIn } = useAppAuth();
+  const { getAccessToken, isSignedIn, openSignIn } = useAppAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -60,30 +61,39 @@ export default function HistorySheet({
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [clearingAll, setClearingAll] = useState(false);
 
+  const getRequestHeaders = useCallback(async () => {
+    const headers = {};
+    if (isSignedIn) {
+      try {
+        const token = await getAccessToken();
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+      } catch {}
+    }
+    const guestId = getStoredGuestId();
+    if (guestId) {
+      headers["X-Guest-Id"] = guestId;
+    }
+    return headers;
+  }, [getAccessToken, isSignedIn]);
+
   const fetchHistory = useCallback(async () => {
-    if (!isSignedIn) return;
     setLoading(true);
     setError(null);
     try {
-      let token = await getAccessToken();
-      let res = await fetch(`${BACKEND_URL}/history`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (res.status === 401) {
-        token = await getAccessToken({ skipCache: true });
+      const headers = await getRequestHeaders();
+      let res = await fetch(`${BACKEND_URL}/history`, { headers });
+      if (res.status === 401 && isSignedIn) {
+        const token = await getAccessToken({ skipCache: true });
         if (token) {
-          res = await fetch(`${BACKEND_URL}/history`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          headers["Authorization"] = `Bearer ${token}`;
+          res = await fetch(`${BACKEND_URL}/history`, { headers });
         }
       }
       if (res.ok) {
         const data = await res.json();
         setHistory(Array.isArray(data) ? data : []);
+      } else {
+        setHistory([]);
       }
     } catch (err) {
       console.error("Failed to load history:", err);
@@ -91,7 +101,7 @@ export default function HistorySheet({
     } finally {
       setLoading(false);
     }
-  }, [getAccessToken, isSignedIn]);
+  }, [getRequestHeaders, getAccessToken, isSignedIn]);
 
   useEffect(() => {
     if (isOpen) {
@@ -107,21 +117,18 @@ export default function HistorySheet({
     if (e) e.stopPropagation();
     setDeletingId(id);
     try {
-      let token = await getAccessToken();
+      const headers = await getRequestHeaders();
       let res = await fetch(`${BACKEND_URL}/history/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
-      if (res.status === 401) {
-        token = await getAccessToken({ skipCache: true });
+      if (res.status === 401 && isSignedIn) {
+        const token = await getAccessToken({ skipCache: true });
         if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
           res = await fetch(`${BACKEND_URL}/history/${id}`, {
             method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers,
           });
         }
       }
@@ -139,21 +146,18 @@ export default function HistorySheet({
   const executeClearAll = async () => {
     setClearingAll(true);
     try {
-      let token = await getAccessToken();
+      const headers = await getRequestHeaders();
       let res = await fetch(`${BACKEND_URL}/history`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
-      if (res.status === 401) {
-        token = await getAccessToken({ skipCache: true });
+      if (res.status === 401 && isSignedIn) {
+        const token = await getAccessToken({ skipCache: true });
         if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
           res = await fetch(`${BACKEND_URL}/history`, {
             method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers,
           });
         }
       }
@@ -192,6 +196,21 @@ export default function HistorySheet({
       }
     >
       <div className="flex flex-col h-full space-y-4">
+        {!isSignedIn && (
+          <div className="p-3 rounded-xl bg-surface-2 border border-line flex items-center justify-between gap-3 text-xs">
+            <span className="text-fg-muted">
+              Checks are temporarily saved. Sign in to save permanently.
+            </span>
+            <button
+              type="button"
+              onClick={openSignIn}
+              className="px-3 py-1 bg-primary text-white font-medium rounded-lg hover:opacity-90 transition shrink-0 cursor-pointer"
+            >
+              Sign in
+            </button>
+          </div>
+        )}
+
         {history.length > 0 && (
           <div className="relative pb-2 border-b border-line">
             {confirmClearAll ? (

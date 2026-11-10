@@ -409,3 +409,18 @@ textarea:focus-visible {
   animation: resultCardEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
 }
+
+/* Background Shine Animation */
+@keyframes background-shine {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.animate-background-shine {
+  animation: background-shine 2s linear infinite;
+}
+
