@@ -1,10 +1,11 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import LandingPage from "./pages/Landing_page";
 import NotFoundPage from "./pages/NotFound_page";
 import axios from "axios";
 import { useEffect } from "react";
+import { useAppAuth } from "./auth/useAppAuth";
 
 const About = React.lazy(() => import("./pages/About_page"));
 const Privacy = React.lazy(() => import("./pages/Privacy_page"));
@@ -14,15 +15,41 @@ const DevResultPreview = import.meta.env.DEV
   : null;
 
 function App() {
+  const { isSignedIn } = useAppAuth();
+  const location = useLocation();
+
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_BACKEND_URL}/health`).catch(() => {});
   }, []);
+
+  // When logged in, default reload should land on top "Home"
+  useEffect(() => {
+    if (isSignedIn) {
+      if ("scrollRestoration" in window.history) {
+        window.history.scrollRestoration = "manual";
+      }
+      if (
+        window.location.pathname === "/how-it-works" ||
+        window.location.hash === "#how-it-works"
+      ) {
+        window.history.replaceState(null, "", "/");
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      } else if (location.pathname === "/") {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      }
+    }
+  }, [isSignedIn, location.pathname]);
 
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/how-it-works" element={<LandingPage />} />
+        <Route
+          path="/how-it-works"
+          element={
+            isSignedIn ? <Navigate to="/" replace /> : <LandingPage />
+          }
+        />
         <Route path="/app" element={<Navigate to="/" replace />} />
         <Route
           path="/about"

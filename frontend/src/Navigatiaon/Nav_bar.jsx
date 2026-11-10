@@ -16,6 +16,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [activeTabId, setActiveTabId] = useState(() => {
+    if (isSignedIn) return 0;
     if (location.pathname === "/about") return 2;
     if (location.pathname === "/how-it-works" || location.hash === "#how-it-works") return 1;
     return 0;
@@ -26,11 +27,19 @@ export default function Navbar() {
 
   // Sync route changes
   useEffect(() => {
+    if (isSignedIn && (location.pathname === "/how-it-works" || location.hash === "#how-it-works")) {
+      setActiveTabId(0);
+      return;
+    }
     if (location.pathname === "/about") {
       setActiveTabId(2);
     } else if (location.pathname === "/how-it-works" || location.hash === "#how-it-works") {
       setActiveTabId(1);
     } else if (location.pathname === "/") {
+      if (isSignedIn && window.scrollY < 200) {
+        setActiveTabId(0);
+        return;
+      }
       const el = document.getElementById("how-it-works");
       if (el) {
         const rect = el.getBoundingClientRect();
@@ -42,7 +51,7 @@ export default function Navbar() {
       }
       setActiveTabId(0);
     }
-  }, [location.pathname, location.hash]);
+  }, [location.pathname, location.hash, isSignedIn]);
 
   // Scroll spy on home / landing page to detect when user scrolls to/from "How it works"
   useEffect(() => {

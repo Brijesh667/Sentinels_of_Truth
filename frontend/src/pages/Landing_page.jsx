@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import usePageTitle from "../utils/usePageTitle";
+import { useAppAuth } from "../auth/useAppAuth";
 import QueryForm from "../components/QueryForm";
 import Card from "../components/ui/Card";
 import LightRays from "@/registry/react-bits/LightRays";
@@ -38,12 +39,31 @@ const WHY_TRUST_POINTS = [
 
 export default function LandingPage() {
   usePageTitle("Sentinels of Truth — Check before you share");
+  const { isSignedIn } = useAppAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const howItWorksRef = useRef(null);
   const whyTrustRef = useRef(null);
 
   useEffect(() => {
-    if (location.state?.scrollTo === "how-it-works" || location.pathname === "/how-it-works") {
+    // If logged in, reload or load should default to "Home" top
+    if (isSignedIn) {
+      if (
+        location.pathname === "/how-it-works" ||
+        location.hash === "#how-it-works"
+      ) {
+        window.history.replaceState(null, "", "/");
+        navigate("/", { replace: true });
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        return;
+      }
+    }
+
+    if (
+      !isSignedIn &&
+      (location.state?.scrollTo === "how-it-works" ||
+        location.pathname === "/how-it-works")
+    ) {
       setTimeout(() => {
         const el = document.getElementById("how-it-works");
         if (el) {
@@ -51,7 +71,7 @@ export default function LandingPage() {
         }
       }, 150);
     }
-  }, [location.state, location.pathname]);
+  }, [location.state, location.pathname, location.hash, isSignedIn, navigate]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
