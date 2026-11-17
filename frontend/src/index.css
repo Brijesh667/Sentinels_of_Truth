@@ -194,6 +194,7 @@ textarea:focus-visible {
   --y: -1000px;
   --tilt-x: 0deg;
   --tilt-y: 0deg;
+  --hover-scale: 1.03;
   transform-style: preserve-3d;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease-out;
   will-change: transform;
@@ -201,7 +202,7 @@ textarea:focus-visible {
 
 @media (hover: hover) and (pointer: fine) {
   .glow-card:hover {
-    transform: perspective(1000px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) scale3d(1.03, 1.03, 1.03);
+    transform: perspective(1000px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) scale3d(var(--hover-scale), var(--hover-scale), var(--hover-scale));
   }
 
   /* Inner radial spotlight glow */
@@ -310,12 +311,23 @@ textarea:focus-visible {
   outline-offset: 2px !important;
 }
 
-/* 6. INPUT BOX FOCUS & GLOW (0.2s transition, border & shadow only) */
+/* 6. INPUT BOX FOCUS & GLOW (subtle lift, no 3D tilt) */
 .input-box-glow {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease,
+    box-shadow 0.25s ease, background-color 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .input-box-glow:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--color-line)) !important;
+    background-color: color-mix(in srgb, var(--accent) 3%, var(--color-surface));
+    box-shadow: 0 12px 32px -20px var(--accent-glow), 0 4px 14px rgba(0, 0, 0, 0.12);
+  }
 }
 
 .input-box-glow:focus-within {
+  transform: translateY(-2px);
   border-color: var(--accent) !important;
   box-shadow: 0 0 20px var(--accent-glow) !important;
 }

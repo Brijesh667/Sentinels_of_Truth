@@ -97,7 +97,7 @@ export default function LandingPage() {
       {/* 1. HERO SECTION: Light Rays Background */}
       <section
         aria-label="Hero"
-        className="relative w-full bg-black dark text-white overflow-hidden pt-8 sm:pt-12 pb-14 sm:pb-20 px-4 sm:px-6 lg:px-8"
+        className="relative z-20 w-full bg-black dark text-white overflow-x-clip pt-8 sm:pt-12 pb-24 sm:pb-32 px-4 sm:px-6 lg:px-8"
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
           <LightRays
@@ -115,7 +115,7 @@ export default function LandingPage() {
           <QueryForm isLanding={true} />
         </div>
         {/* Soft bottom transition into next section */}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-bg pointer-events-none z-10" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-bg pointer-events-none z-[1]" />
       </section>
 
       {/* 2. HOW IT WORKS */}

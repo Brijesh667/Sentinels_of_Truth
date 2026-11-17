@@ -7,6 +7,9 @@ const GlowCard = forwardRef(function GlowCard(
     as: Component = "div",
     onMouseMove,
     onMouseLeave,
+    tiltMax = 6,
+    hoverScale = 1.03,
+    style,
     ...rest
   },
   forwardedRef
@@ -54,9 +57,9 @@ const GlowCard = forwardRef(function GlowCard(
       const percentX = (x - centerX) / (centerX || 1);
       const percentY = (y - centerY) / (centerY || 1);
 
-      // Max 6 degrees tilt toward cursor
-      const tiltX = (-percentY * 6).toFixed(2);
-      const tiltY = (percentX * 6).toFixed(2);
+      // Tilt toward cursor, capped by tiltMax
+      const tiltX = (-percentY * tiltMax).toFixed(2);
+      const tiltY = (percentX * tiltMax).toFixed(2);
 
       card.style.setProperty("--x", `${x}px`);
       card.style.setProperty("--y", `${y}px`);
@@ -81,6 +84,7 @@ const GlowCard = forwardRef(function GlowCard(
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={`glow-card ${className}`}
+      style={{ "--hover-scale": hoverScale, ...style }}
       {...rest}
     >
       {children}

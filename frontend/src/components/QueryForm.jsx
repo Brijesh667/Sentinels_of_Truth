@@ -614,7 +614,11 @@ export default function QueryForm({
       )}
 
       {/* 2. Input Box */}
-      <GlowCard className="relative z-10 suggestion-container bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs input-box-glow focus-within:ring-0 focus-within:outline-none">
+      <GlowCard
+        tiltMax={0}
+        hoverScale={1}
+        className="relative z-10 suggestion-container bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-xs input-box-glow focus-within:ring-0 focus-within:outline-none"
+      >
         <label htmlFor="claim-input" className="sr-only">
           Claim or statement to verify
         </label>
